@@ -46,6 +46,7 @@ class TranslationsEn extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$welcome$en welcome = _Translations$welcome$en._(_root);
 	@override late final _Translations$signIn$en signIn = _Translations$signIn$en._(_root);
 	@override late final _Translations$age$en age = _Translations$age$en._(_root);
+	@override late final _Translations$createFamily$en createFamily = _Translations$createFamily$en._(_root);
 	@override late final _Translations$screens$en screens = _Translations$screens$en._(_root);
 }
 
@@ -143,6 +144,20 @@ class _Translations$age$en extends Translations$age$es {
 	@override String get primaryLanguageSpanish => 'Spanish';
 }
 
+// Path: createFamily
+class _Translations$createFamily$en extends Translations$createFamily$es {
+	_Translations$createFamily$en._(TranslationsEn root) : this._root = root, super.internal(root);
+
+	final TranslationsEn _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Name your family';
+	@override String get subtitle => 'This is the space you will share. You can change it later.';
+	@override String get nameLabel => 'Family name';
+	@override String get nameHint => 'The Garcías';
+	@override String get confirm => 'Create';
+}
+
 // Path: screens
 class _Translations$screens$en extends Translations$screens$es {
 	_Translations$screens$en._(TranslationsEn root) : this._root = root, super.internal(root);
@@ -151,7 +166,6 @@ class _Translations$screens$en extends Translations$screens$es {
 
 	// Translations
 	@override late final _Translations$screens$signIn$en signIn = _Translations$screens$signIn$en._(_root);
-	@override late final _Translations$screens$familyNew$en familyNew = _Translations$screens$familyNew$en._(_root);
 	@override late final _Translations$screens$invite$en invite = _Translations$screens$invite$en._(_root);
 	@override late final _Translations$screens$code$en code = _Translations$screens$code$en._(_root);
 	@override late final _Translations$screens$bondNew$en bondNew = _Translations$screens$bondNew$en._(_root);
@@ -202,16 +216,6 @@ class _Translations$screens$signIn$en extends Translations$screens$signIn$es {
 
 	// Translations
 	@override String get title => 'Sign in';
-}
-
-// Path: screens.familyNew
-class _Translations$screens$familyNew$en extends Translations$screens$familyNew$es {
-	_Translations$screens$familyNew$en._(TranslationsEn root) : this._root = root, super.internal(root);
-
-	final TranslationsEn _root; // ignore: unused_field
-
-	// Translations
-	@override String get title => 'New family';
 }
 
 // Path: screens.invite
@@ -417,8 +421,12 @@ extension on TranslationsEn {
 			'age.primaryLanguageTitle' => 'Which one is shown first, larger?',
 			'age.primaryLanguageEnglish' => 'English',
 			'age.primaryLanguageSpanish' => 'Spanish',
+			'createFamily.title' => 'Name your family',
+			'createFamily.subtitle' => 'This is the space you will share. You can change it later.',
+			'createFamily.nameLabel' => 'Family name',
+			'createFamily.nameHint' => 'The Garcías',
+			'createFamily.confirm' => 'Create',
 			'screens.signIn.title' => 'Sign in',
-			'screens.familyNew.title' => 'New family',
 			'screens.invite.title' => 'Invitation',
 			'screens.code.title' => 'Code',
 			'screens.bondNew.title' => 'New bond',

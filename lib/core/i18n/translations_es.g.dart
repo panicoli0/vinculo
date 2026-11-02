@@ -48,6 +48,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$welcome$es welcome = Translations$welcome$es.internal(_root);
 	late final Translations$signIn$es signIn = Translations$signIn$es.internal(_root);
 	late final Translations$age$es age = Translations$age$es.internal(_root);
+	late final Translations$createFamily$es createFamily = Translations$createFamily$es.internal(_root);
 	late final Translations$screens$es screens = Translations$screens$es.internal(_root);
 }
 
@@ -204,6 +205,30 @@ class Translations$age$es {
 	String get primaryLanguageSpanish => 'Español';
 }
 
+// Path: createFamily
+class Translations$createFamily$es {
+	Translations$createFamily$es.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// es: 'Ponle nombre a tu familia'
+	String get title => 'Ponle nombre a tu familia';
+
+	/// es: 'Es el espacio que van a compartir. Puedes cambiarlo después.'
+	String get subtitle => 'Es el espacio que van a compartir. Puedes cambiarlo después.';
+
+	/// es: 'Nombre de la familia'
+	String get nameLabel => 'Nombre de la familia';
+
+	/// es: 'Familia García'
+	String get nameHint => 'Familia García';
+
+	/// es: 'Crear'
+	String get confirm => 'Crear';
+}
+
 // Path: screens
 class Translations$screens$es {
 	Translations$screens$es.internal(this._root);
@@ -212,7 +237,6 @@ class Translations$screens$es {
 
 	// Translations
 	late final Translations$screens$signIn$es signIn = Translations$screens$signIn$es.internal(_root);
-	late final Translations$screens$familyNew$es familyNew = Translations$screens$familyNew$es.internal(_root);
 	late final Translations$screens$invite$es invite = Translations$screens$invite$es.internal(_root);
 	late final Translations$screens$code$es code = Translations$screens$code$es.internal(_root);
 	late final Translations$screens$bondNew$es bondNew = Translations$screens$bondNew$es.internal(_root);
@@ -277,18 +301,6 @@ class Translations$screens$signIn$es {
 
 	/// es: 'Iniciar sesión'
 	String get title => 'Iniciar sesión';
-}
-
-// Path: screens.familyNew
-class Translations$screens$familyNew$es {
-	Translations$screens$familyNew$es.internal(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// es: 'Nueva familia'
-	String get title => 'Nueva familia';
 }
 
 // Path: screens.invite
@@ -526,8 +538,12 @@ extension on Translations {
 			'age.primaryLanguageTitle' => '¿Cuál se muestra primero, en grande?',
 			'age.primaryLanguageEnglish' => 'Inglés',
 			'age.primaryLanguageSpanish' => 'Español',
+			'createFamily.title' => 'Ponle nombre a tu familia',
+			'createFamily.subtitle' => 'Es el espacio que van a compartir. Puedes cambiarlo después.',
+			'createFamily.nameLabel' => 'Nombre de la familia',
+			'createFamily.nameHint' => 'Familia García',
+			'createFamily.confirm' => 'Crear',
 			'screens.signIn.title' => 'Iniciar sesión',
-			'screens.familyNew.title' => 'Nueva familia',
 			'screens.invite.title' => 'Invitación',
 			'screens.code.title' => 'Código',
 			'screens.bondNew.title' => 'Nuevo vínculo',

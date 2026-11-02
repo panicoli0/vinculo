@@ -8,6 +8,7 @@ import '../../features/auth/presentation/screens/age_screen.dart';
 import '../../features/auth/presentation/screens/profile_unavailable_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/auth/presentation/screens/welcome_screen.dart';
+import '../../features/family/presentation/screens/create_family_screen.dart';
 import '../../features/preferences/presentation/preferences_providers.dart';
 import 'app_route.dart';
 import 'app_shell.dart';
@@ -64,10 +65,7 @@ GoRouter appRouter(Ref ref) {
         AppRoute.profileUnavailable,
         (_) => const ProfileUnavailableScreen(),
       ),
-      _placeholderRoute(
-        AppRoute.familyNew,
-        (Translations t) => t.screens.familyNew.title,
-      ),
+      _screenRoute(AppRoute.familyNew, (_) => const CreateFamilyScreen()),
       _placeholderRoute(
         AppRoute.invite,
         (Translations t) => t.screens.invite.title,
