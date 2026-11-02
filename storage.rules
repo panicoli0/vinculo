@@ -1,0 +1,9 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Fase 1: todo cerrado. Audio y fotos están diferidos a v1.1.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "tabs": {
+    "garden": "Jardín",
+    "questions": "Preguntas",
+    "stories": "Historias",
+    "settings": "Ajustes"
+  },
+  "placeholder": {
+    "body": "Pantalla en construcción"
+  },
+  "errors": {
+    "notFound": "Esta pantalla no existe",
+    "network": "No hay conexión. Lo intentaremos de nuevo.",
+    "generic": "Algo salió mal. Intenta de nuevo."
+  },
+  "profileUnavailable": {
+    "title": "No pudimos cargar tu perfil",
+    "retry": "Reintentar",
+    "signOut": "Cerrar sesión"
+  },
+  "welcome": {
+    "title": "Historias que nos unen",
+    "subtitle": "Pregúntale a tu familia lo que siempre quisiste saber. Y recuerda lo que ya contaste.",
+    "language": {
+      "label": "Idioma",
+      "es": "Español",
+      "en": "English"
+    },
+    "analytics": {
+      "question": "¿Nos ayudas a mejorar la app compartiendo datos de uso anónimos?",
+      "yes": "Sí, compartir",
+      "no": "No, gracias"
+    },
+    "start": "Empezar"
+  },
+  "signIn": {
+    "google": "Continuar con Google",
+    "apple": "Continuar con Apple",
+    "haveCode": "Tengo un código"
+  },
+  "age": {
+    "title": "¿En qué año naciste?",
+    "yearLabel": "Año de nacimiento",
+    "nameLabel": "¿Cómo te llamas?",
+    "confirm": "Continuar",
+    "blocked": "Para usar la app, pídele a tu madre, padre o tutor que te cree un perfil desde su teléfono.",
+    "cardLanguageTitle": "¿En qué idioma quieres ver las preguntas?",
+    "cardLanguageEnglish": "Solo en inglés",
+    "cardLanguageSpanish": "Solo en español",
+    "cardLanguageBilingual": "En los dos idiomas",
+    "primaryLanguageTitle": "¿Cuál se muestra primero, en grande?",
+    "primaryLanguageEnglish": "Inglés",
+    "primaryLanguageSpanish": "Español"
+  },
+  "screens": {
+    "signIn": {
+      "title": "Iniciar sesión"
+    },
+    "familyNew": {
+      "title": "Nueva familia"
+    },
+    "invite": {
+      "title": "Invitación"
+    },
+    "code": {
+      "title": "Código"
+    },
+    "bondNew": {
+      "title": "Nuevo vínculo"
+    },
+    "bond": {
+      "title": "Vínculo"
+    },
+    "bondAsk": {
+      "title": "Preguntar"
+    },
+    "bondAskVariations": {
+      "title": "Variaciones"
+    },
+    "bondTell": {
+      "title": "Contar"
+    },
+    "bondAskDetail": {
+      "title": "Pregunta"
+    },
+    "bondStory": {
+      "title": "Historia"
+    },
+    "bondCheckpoint": {
+      "title": "Punto de control"
+    },
+    "bondSettings": {
+      "title": "Ajustes del vínculo"
+    },
+    "family": {
+      "title": "Familia"
+    },
+    "familyMinorNew": {
+      "title": "Nuevo perfil de menor"
+    },
+    "familyMinorCode": {
+      "title": "Código del menor"
+    },
+    "deleteAccount": {
+      "title": "Eliminar cuenta"
+    },
+    "betaSubscription": {
+      "title": "Suscripción"
+    }
+  }
+}

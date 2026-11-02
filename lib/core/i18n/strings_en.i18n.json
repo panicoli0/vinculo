@@ -1,0 +1,111 @@
+{
+  "tabs": {
+    "garden": "Garden",
+    "questions": "Questions",
+    "stories": "Stories",
+    "settings": "Settings"
+  },
+  "placeholder": {
+    "body": "Screen under construction"
+  },
+  "errors": {
+    "notFound": "This screen does not exist",
+    "network": "No connection. We'll try again.",
+    "generic": "Something went wrong. Please try again."
+  },
+  "profileUnavailable": {
+    "title": "We couldn't load your profile",
+    "retry": "Try again",
+    "signOut": "Sign out"
+  },
+  "welcome": {
+    "title": "Stories that bring us closer",
+    "subtitle": "Ask your family what you always wanted to know. And remember what you've already told.",
+    "language": {
+      "label": "Language",
+      "es": "Español",
+      "en": "English"
+    },
+    "analytics": {
+      "question": "Will you help us improve the app by sharing anonymous usage data?",
+      "yes": "Yes, share",
+      "no": "No, thanks"
+    },
+    "start": "Get started"
+  },
+  "signIn": {
+    "google": "Continue with Google",
+    "apple": "Continue with Apple",
+    "haveCode": "I have a code"
+  },
+  "age": {
+    "title": "What year were you born?",
+    "yearLabel": "Birth year",
+    "nameLabel": "What's your name?",
+    "confirm": "Continue",
+    "blocked": "To use the app, ask your parent or guardian to create a profile for you from their phone.",
+    "cardLanguageTitle": "Which language do you want the questions in?",
+    "cardLanguageEnglish": "English only",
+    "cardLanguageSpanish": "Spanish only",
+    "cardLanguageBilingual": "Both languages",
+    "primaryLanguageTitle": "Which one is shown first, larger?",
+    "primaryLanguageEnglish": "English",
+    "primaryLanguageSpanish": "Spanish"
+  },
+  "screens": {
+    "signIn": {
+      "title": "Sign in"
+    },
+    "familyNew": {
+      "title": "New family"
+    },
+    "invite": {
+      "title": "Invitation"
+    },
+    "code": {
+      "title": "Code"
+    },
+    "bondNew": {
+      "title": "New bond"
+    },
+    "bond": {
+      "title": "Bond"
+    },
+    "bondAsk": {
+      "title": "Ask"
+    },
+    "bondAskVariations": {
+      "title": "Variations"
+    },
+    "bondTell": {
+      "title": "Tell"
+    },
+    "bondAskDetail": {
+      "title": "Question"
+    },
+    "bondStory": {
+      "title": "Story"
+    },
+    "bondCheckpoint": {
+      "title": "Checkpoint"
+    },
+    "bondSettings": {
+      "title": "Bond settings"
+    },
+    "family": {
+      "title": "Family"
+    },
+    "familyMinorNew": {
+      "title": "New minor profile"
+    },
+    "familyMinorCode": {
+      "title": "Minor code"
+    },
+    "deleteAccount": {
+      "title": "Delete account"
+    },
+    "betaSubscription": {
+      "title": "Subscription"
+    }
+  }
+}

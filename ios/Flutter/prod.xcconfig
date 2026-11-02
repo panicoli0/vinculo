@@ -1,0 +1,11 @@
+// Ajustes del flavor `prod`. Lo incluyen los tres `*-prod.xcconfig`
+// (Debug/Release/Profile); acá no va nada que dependa del tipo de build.
+//
+// `PRODUCT_BUNDLE_IDENTIFIER` NO vive acá: queda literal en el .xcodeproj, que
+// es donde lo leen Xcode, `flutterfire configure` y la consola de Apple.
+//
+// `FLAVOR_NAME` lo usa la fase "Copy GoogleService-Info.plist" del target
+// Runner para elegir `ios/config/<FLAVOR_NAME>/GoogleService-Info.plist`.
+
+FLAVOR_NAME=prod
+APP_DISPLAY_NAME=Vínculo

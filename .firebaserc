@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "vinculo-dev-ics",
+    "dev": "vinculo-dev-ics",
+    "prod": "vinculo-prod-ics"
+  }
+}

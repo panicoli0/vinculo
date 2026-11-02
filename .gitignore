@@ -1,0 +1,76 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# FVM
+.fvm/
+
+# Config por entorno: solo se versiona example.json
+env/*.json
+!env/example.json
+
+# Firebase / Functions
+functions/node_modules/
+functions/lib/
+.firebase/
+# Pepper local de las functions (lo lee el emulador); nunca se commitea
+functions/.secret.local
+
+# Configuración de Firebase por proyecto: no se publica. Se versionan solo las
+# plantillas `*.example`; ver README, "Running it".
+android/app/src/dev/google-services.json
+android/app/src/prod/google-services.json
+ios/config/dev/GoogleService-Info.plist
+ios/config/prod/GoogleService-Info.plist
+lib/core/firebase/firebase_options_dev.dart
+lib/core/firebase/firebase_options_prod.dart
+
+# Documentación de producto: se mantiene en el set de trabajo privado
+docs/
+BRIEF.md
+
+# Entorno local del agente
+.claude/
+.mcp.json

@@ -1,0 +1,8 @@
+// Configuración Profile del flavor dev.
+//
+// El orden de los includes importa: primero el xcconfig de CocoaPods (lo
+// regenera `pod install` por cada configuración, con el nombre en minúsculas),
+// después el de Flutter, y al final los valores del flavor.
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile-dev.xcconfig"
+#include "Generated.xcconfig"
+#include "dev.xcconfig"

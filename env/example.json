@@ -1,0 +1,12 @@
+{
+  "ENVIRONMENT": "dev",
+  "USE_FIREBASE": false,
+  "USE_EMULATORS": false,
+  "INVITE_LINK_HOST": "vinculo-dev-ics.web.app",
+  "PRIVACY_POLICY_URL": "https://example.invalid/privacy",
+  "SUPPORT_EMAIL": "support@example.invalid",
+  "UNDER13_PROFILES_ENABLED": false,
+  "GOOGLE_SERVER_CLIENT_ID": "",
+  "APPLE_SERVICE_ID": "",
+  "APPLE_REDIRECT_URI": ""
+}

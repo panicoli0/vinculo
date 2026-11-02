@@ -1,0 +1,90 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local"],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build",
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "hosting/public",
+    "ignore": ["firebase.json", "**/node_modules/**"],
+    "appAssociation": "NONE",
+    "headers": [
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "headers": [{ "key": "Content-Type", "value": "application/json" }]
+      }
+    ]
+  },
+  "emulators": {
+    "auth": { "port": 9099 },
+    "functions": { "port": 5001 },
+    "firestore": { "port": 8080 },
+    "hosting": { "port": 5000 },
+    "storage": { "port": 9199 },
+    "ui": { "enabled": true, "port": 4000 },
+    "singleProjectMode": true
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "buildConfigurations": {
+          "src/dev": {
+            "projectId": "vinculo-dev-ics",
+            "appId": "1:384754812876:android:547fbad12b19ef953bbf69",
+            "fileOutput": "android/app/src/dev/google-services.json"
+          },
+          "src/prod": {
+            "projectId": "vinculo-prod-ics",
+            "appId": "1:578702825191:android:2a93f94846c0c3b8813442",
+            "fileOutput": "android/app/src/prod/google-services.json"
+          }
+        }
+      },
+      "ios": {
+        "buildConfigurations": {
+          "Debug-dev": {
+            "projectId": "vinculo-dev-ics",
+            "appId": "1:384754812876:ios:f6529a5a8183e4523bbf69",
+            "uploadDebugSymbols": false,
+            "fileOutput": "ios/config/dev/GoogleService-Info.plist"
+          },
+          "Debug-prod": {
+            "projectId": "vinculo-prod-ics",
+            "appId": "1:578702825191:ios:34bccde1d127c362813442",
+            "uploadDebugSymbols": false,
+            "fileOutput": "ios/config/prod/GoogleService-Info.plist"
+          }
+        }
+      },
+      "dart": {
+        "lib/core/firebase/firebase_options_dev.dart": {
+          "projectId": "vinculo-dev-ics",
+          "configurations": {
+            "android": "1:384754812876:android:547fbad12b19ef953bbf69",
+            "ios": "1:384754812876:ios:f6529a5a8183e4523bbf69"
+          }
+        },
+        "lib/core/firebase/firebase_options_prod.dart": {
+          "projectId": "vinculo-prod-ics",
+          "configurations": {
+            "android": "1:578702825191:android:2a93f94846c0c3b8813442",
+            "ios": "1:578702825191:ios:34bccde1d127c362813442"
+          }
+        }
+      }
+    }
+  }
+}

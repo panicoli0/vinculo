@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "<TEAM_ID>.com.innerchildstudios.vinculo",
+        "paths": ["/i/*", "/m/*"]
+      },
+      {
+        "appID": "<TEAM_ID>.com.innerchildstudios.vinculo.dev",
+        "paths": ["/i/*", "/m/*"]
+      }
+    ]
+  }
+}

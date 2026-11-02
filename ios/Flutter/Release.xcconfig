@@ -1,0 +1,5 @@
+// NO SE USA. Desde que existen los flavors, ninguna configuración del
+// proyecto lo toma como base: cada una usa Release-{dev,prod}.xcconfig.
+// Se conserva solo porque es un archivo de la plantilla de Flutter.
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include "Generated.xcconfig"
