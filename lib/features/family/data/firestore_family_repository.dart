@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/errors/app_failure.dart';
 import '../../../core/firebase/firebase_failure_mapper.dart';
 import '../../auth/domain/account_type.dart';
 import '../domain/family.dart';
@@ -30,13 +31,14 @@ final class FirestoreFamilyRepository implements FamilyRepository {
 
   @override
   Stream<List<Family>> watchFamilies(String uid) {
-    // Sin `includeMetadataChanges`, al revés que `users/{uid}`: ahí hacía
-    // falta distinguir "no existe" de "todavía no está en caché" porque la
-    // ausencia manda a la verja de edad. Acá una lista vacía ya significa
-    // "todavía no tiene familia", que es la pantalla correcta en ambos casos.
+    // Con metadata, igual que `users/{uid}`: una consulta sin red y sin caché
+    // devuelve cero documentos, y tomar esa lista vacía por "todavía no tiene
+    // familia" mandaría a un miembro existente a crear una SEGUNDA familia.
+    // Vacío + `isFromCache` se informa como [AppFailure.network] y el stream
+    // sigue abierto: el snapshot del servidor lo reemplaza al volver la red.
     return _families
         .where(FamilyField.memberUids.key, arrayContains: uid)
-        .snapshots()
+        .snapshots(includeMetadataChanges: true)
         .transform(
           StreamTransformer<
             QuerySnapshot<Map<String, dynamic>>,
@@ -50,11 +52,23 @@ final class FirestoreFamilyRepository implements FamilyRepository {
   }
 
   /// Turns one [snapshot] into the list of families, or a failure on [sink].
+  ///
+  /// Una lista vacía que vino del caché no prueba nada: puede ser alguien sin
+  /// familia o un miembro cuya familia nunca se cacheó. Solo el servidor
+  /// puede afirmar la ausencia.
   void _forward(
     QuerySnapshot<Map<String, dynamic>> snapshot,
     EventSink<List<Family>> sink,
   ) {
     try {
+      if (snapshot.docs.isEmpty && snapshot.metadata.isFromCache) {
+        sink.addError(
+          const AppFailure.network(
+            message: 'families query is not cached and there is no connection',
+          ),
+        );
+        return;
+      }
       sink.add(<Family>[
         for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
             in snapshot.docs)

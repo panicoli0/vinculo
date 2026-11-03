@@ -12,18 +12,16 @@ FamilyRepository familyRepository(Ref ref) => throw UnimplementedError(
   'familyRepositoryProvider must be overridden in bootstrap',
 );
 
-/// Retry policy of [currentFamilies]: never.
-///
-/// Mismo motivo que en `currentUser`: el reintento de Riverpod volvería a
-/// suscribir la consulta y dejaría el estado en `loading` unos 40 s antes de
-/// mostrar el error, cuando el stream de Firestore ya se recupera solo.
-Duration? _neverRetry(int retryCount, Object error) => null;
-
 /// Families the signed-in person belongs to; empty while there is none.
 ///
 /// Composición entre features, permitida solo acá (en
 /// `presentation/*_providers.dart`): la lista depende de quién esté dentro.
-@Riverpod(keepAlive: true, retry: _neverRetry)
+///
+/// Con el reintento por defecto de Riverpod, a diferencia de `currentUser`:
+/// un *listen* de Firestore que falla no vuelve a emitir nunca más, así que
+/// sin reintento la consulta queda muerta hasta reiniciar la app, aunque se
+/// corrija la causa. Volver a suscribir es lo único que la revive.
+@Riverpod(keepAlive: true)
 Stream<List<Family>> currentFamilies(Ref ref) {
   final String? uid = ref.watch(currentUidProvider);
   if (uid == null) {

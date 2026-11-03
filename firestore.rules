@@ -12,6 +12,21 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    // Caro: una lectura por evaluación. Se usa solo donde el documento no
+    // trae la respuesta.
+    function isAdultAccount() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+             .data.accountType == 'adult';
+    }
+
+    function isFamilyMember(fid) {
+      return signedIn()
+        && request.auth.uid in
+             get(/databases/$(database)/documents/families/$(fid))
+               .data.memberUids;
+    }
+
     // Fase 2 (B2): cuentas de adultos. `bondPrefs` llega en la Fase 3.
     match /users/{uid} {
       allow get: if isSelf(uid);
@@ -53,6 +68,75 @@ service cloud.firestore {
 
       match /devices/{installationId} {
         allow read, write: if isSelf(uid);
+      }
+    }
+
+    // Fase 2 (B3): la familia y su miembro owner. El resto de los miembros
+    // los crea una Function; invitaciones y menores llegan en el próximo
+    // incremento.
+    match /families/{fid} {
+      // Sobre `memberUids` y no sobre `isFamilyMember`: es lo que permite la
+      // consulta `where memberUids array-contains uid`. Con un `get()` a la
+      // subcolección, la regla no sería demostrable por la consulta.
+      allow read: if signedIn()
+        && request.auth.uid in resource.data.memberUids;
+
+      // Un adulto crea su propia familia, con él como único miembro, y en el
+      // mismo lote su `members/{uid}` con rol owner: `getAfter` mira el
+      // estado al terminar la operación, así que una familia sin su miembro
+      // owner no es alcanzable.
+      allow create: if isAdultAccount()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.plan == 'beta'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.analyticsRef is string
+        && request.resource.data.keys().hasOnly([
+          'name', 'ownerUid', 'memberUids', 'plan', 'createdAt', 'analyticsRef'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        // Cota de sanidad, NO el límite de producto. El límite real son 40
+        // grafemas y lo aplica `isValidFamilyName` en el cliente: las reglas
+        // no saben contar grafemas, y un `<= 40` acá rechazaría nombres con
+        // emoji que el campo de texto sí acepta.
+        && request.resource.data.name.size() <= 160
+        && getAfter(
+             /databases/$(database)/documents/families/$(fid)/members/$(request.auth.uid)
+           ).data.role == 'owner';
+
+      // El owner solo renombra; `memberUids`, `ownerUid`, `plan`,
+      // `analyticsRef` y `createdAt` son inmutables desde el cliente.
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['name'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 160;
+
+      // Solo la Function de borrado en cascada.
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if isFamilyMember(fid);
+
+        // Solo el owner, solo sobre sí mismo, y solo en el lote que crea la
+        // familia. Cualquier otro miembro lo crea una Function.
+        allow create: if isSelf(uid)
+          && getAfter(/databases/$(database)/documents/families/$(fid))
+               .data.ownerUid == request.auth.uid
+          && request.resource.data.role == 'owner'
+          && request.resource.data.accountType == 'adult'
+          && request.resource.data.joinedAt == request.time
+          && request.resource.data.keys().hasOnly([
+            'displayName', 'accountType', 'role', 'joinedAt'
+          ])
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 160;
+
+        allow update, delete: if false;
       }
     }
 

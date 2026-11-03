@@ -68,14 +68,13 @@ RouterGate _profileGate(Ref ref) {
 /// Una lista vacía es "todavía no tiene familia". Un error NO lo es: mandarlo
 /// a `/family/new` lo dejaría creando una segunda familia encima de la que ya
 /// tiene. Va a [RouterGate.profileUnavailable], que es la pantalla de "no
-/// pudimos cargar tu estado" con reintento y salida.
+/// pudimos cargar tu estado" con reintento y salida. Quien revive la consulta
+/// es el reintento del propio `currentFamilies`, no el botón de esa pantalla.
 ///
-/// TODO(fase-2-family-retry): esa pantalla lee el fallo y el botón de
-/// reintento solo de `currentUser`, así que un error de familias muestra el
-/// mensaje genérico y el reintento no vuelve a suscribir esta consulta. No
-/// deja a nadie encerrado — el stream de Firestore sigue abierto y se
-/// recupera solo al volver la red —, pero la pantalla tiene que pasar a leer
-/// ambos lados cuando se arme el resto de la Fase 2.
+/// TODO(fase-2-family-message): esa pantalla lee el mensaje de error solo de
+/// `currentUser`, así que un fallo de familias se muestra con el texto
+/// genérico. Tiene que pasar a leer ambos lados cuando se arme el resto de la
+/// Fase 2.
 RouterGate _familyGate(AsyncValue<List<Family>> families) {
   if (families.isLoading) {
     return RouterGate.loading;

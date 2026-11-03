@@ -23,6 +23,9 @@ dependencies:
   url_launcher: 6.3.3
   package_info_plus: 10.2.2
   uuid: 4.6.0
+  # Grafemas: `domain/` no puede importar Flutter, y la política de nombres
+  # tiene que contar lo mismo que `LengthLimitingTextInputFormatter`.
+  characters: 1.4.1
   firebase_core: 5.1.0
   firebase_auth: 7.0.1
   cloud_firestore: 7.1.0

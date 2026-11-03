@@ -154,11 +154,19 @@ const Set<AppRoute> _familySetupRoutes = <AppRoute>{
 };
 
 /// Entry-flow routes a fully set up person is moved away from.
+///
+/// `familyNew` está acá y también en [_familySetupRoutes]: es la última
+/// pantalla del alta, así que hay que poder estar en ella sin familia y hay
+/// que salir de ella en cuanto haya una. Sin esto, crear la familia deja a la
+/// persona en el formulario — el gate pasa a [RouterGate.ready] pero nada la
+/// mueve — y cualquiera que ya esté dentro puede abrir `/family/new` y crear
+/// una segunda familia.
 const Set<AppRoute> _entryRoutes = <AppRoute>{
   AppRoute.welcome,
   AppRoute.signIn,
   AppRoute.age,
   AppRoute.profileUnavailable,
+  AppRoute.familyNew,
 };
 
 /// The [AppRoute] whose path pattern is [fullPath], or null when none is.
