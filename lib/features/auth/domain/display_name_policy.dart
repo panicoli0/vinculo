@@ -16,12 +16,6 @@ const int kDisplayNameMaxLength = 40;
 /// el cliente lo mide sobre el trimeado, que es lo que va a escribir.
 const int kDisplayNameMaxUtf16Units = 640;
 
-/// Whether [raw], once trimmed, is longer than the UTF-16 sanity bound the
-/// Firestore rule applies, so the screen can say why instead of only disabling
-/// the button.
-bool exceedsDisplayNameStorageLimit(String raw) =>
-    raw.trim().length > kDisplayNameMaxUtf16Units;
-
 /// Whether [raw] is acceptable as a display name once trimmed; mirrors the
 /// Firestore rule so the client never sends a write the rules would reject.
 ///
