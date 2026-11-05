@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Read [AGENTS.md](AGENTS.md) first.** It is the house-rules contract shared by every coding agent and by the AI reviewer: setup and verification, the five rules with their scope and their reason, and the project invariants. This file is the deeper guide behind it. If the two ever disagree, AGENTS.md wins and this file gets fixed.
+
 ## What this is
 
 **Vínculo** (codename; Dart package `vinculo`, working bundle ID `com.innerchildstudios.vinculo`, store name still open) — a bilingual ES/EN iOS and Android app for creating or strengthening family bonds through questions. Each person uses their **own phone**, remotely and asynchronously. One person asks, the other tells the story (in writing, or by marking "I told them on a call or in person" plus a note), and the app remembers **what each teller already told to whom** — that anti-repetition history is the product's differentiator. Backend is Firebase (Auth, Firestore, Functions, FCM, Analytics, Crashlytics, App Check, Hosting).

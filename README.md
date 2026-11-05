@@ -128,10 +128,11 @@ firebase emulators:start --project dev
 
 ## Standards
 
-[`CLAUDE.md`](CLAUDE.md) is the contract the coding agents work under: the
-architecture boundaries above, the invariants that are easy to get wrong
-(two independent language axes, per-bond formality, how the anti-repetition key
-is computed), the privacy rules, and the scope discipline for v1.
+[`AGENTS.md`](AGENTS.md) is the contract the coding agents and the AI reviewer
+work under: setup and verification commands, five rules with the scope and the
+reason for each, and the invariants that are easy to get wrong (two independent
+language axes, per-bond formality, how the anti-repetition key is computed).
+[`CLAUDE.md`](CLAUDE.md) is the deeper guide behind it.
 
 Privacy is a hard constraint, not a preference. No names, birth years, story
 text, user-written or AI-generated question text, invite codes or Firebase uids
