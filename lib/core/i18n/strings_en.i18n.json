@@ -42,6 +42,7 @@
     "title": "What year were you born?",
     "yearLabel": "Birth year",
     "nameLabel": "What's your name?",
+    "nameTooLong": "That name is too long to save. Try a shorter one.",
     "confirm": "Continue",
     "blocked": "To use the app, ask your parent or guardian to create a profile for you from their phone.",
     "cardLanguageTitle": "Which language do you want the questions in?",

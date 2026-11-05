@@ -43,8 +43,15 @@ service cloud.firestore {
           'uiLocale', 'cardLanguageMode', 'primaryLanguage', 'createdAt'
         ])
         && request.resource.data.displayName is string
-        && request.resource.data.displayName.size() >= 1
-        && request.resource.data.displayName.size() <= 40;
+        // Cota de sanidad en unidades UTF-16, NO el límite de producto. El límite
+        // real son 40 grafemas y lo aplica `isValidDisplayName` en el cliente:
+        // `size()` cuenta unidades UTF-16 — medido en el emulador: una familia de
+        // cuatro con ZWJ da 11, un beso con tonos de piel 15 — así que un `<= 40`
+        // acá rechazaría nombres con emoji que el campo de texto sí acepta.
+        // 640 = 40 x 16, con 16 por encima de la peor secuencia RGI medida.
+        // `trim()` cierra el hueco de un nombre de solo espacios.
+        && request.resource.data.displayName.trim().size() >= 1
+        && request.resource.data.displayName.trim().size() <= 640;
 
       // `birthYear`, `accountType`, `consent`, `joinedVia` y `firstAnsweredAt`
       // son inmutables desde el cliente.
@@ -58,8 +65,9 @@ service cloud.firestore {
               request.resource.data.diff(resource.data).affectedKeys())
           || (
             request.resource.data.displayName is string
-            && request.resource.data.displayName.size() >= 1
-            && request.resource.data.displayName.size() <= 40
+            // Misma cota de sanidad UTF-16 que el `create` de arriba.
+            && request.resource.data.displayName.trim().size() >= 1
+            && request.resource.data.displayName.trim().size() <= 640
           )
         );
 
@@ -95,6 +103,7 @@ service cloud.firestore {
           'name', 'ownerUid', 'memberUids', 'plan', 'createdAt', 'analyticsRef'
         ])
         && request.resource.data.name is string
+        // TODO(#7): esta cota no cubre 40 grafemas (medido: 440 unidades UTF-16).
         && request.resource.data.name.size() >= 1
         // Cota de sanidad, NO el límite de producto. El límite real son 40
         // grafemas y lo aplica `isValidFamilyName` en el cliente: las reglas
@@ -133,8 +142,15 @@ service cloud.firestore {
             'displayName', 'accountType', 'role', 'joinedAt'
           ])
           && request.resource.data.displayName is string
-          && request.resource.data.displayName.size() >= 1
-          && request.resource.data.displayName.size() <= 160;
+          // Cota de sanidad en unidades UTF-16, NO el límite de producto. El límite
+          // real son 40 grafemas y lo aplica `isValidDisplayName` en el cliente:
+          // `size()` cuenta unidades UTF-16 — medido en el emulador: una familia de
+          // cuatro con ZWJ da 11, un beso con tonos de piel 15 — así que un `<= 40`
+          // acá rechazaría nombres con emoji que el campo de texto sí acepta.
+          // 640 = 40 x 16, con 16 por encima de la peor secuencia RGI medida.
+          // `trim()` cierra el hueco de un nombre de solo espacios.
+          && request.resource.data.displayName.trim().size() >= 1
+          && request.resource.data.displayName.trim().size() <= 640;
 
         allow update, delete: if false;
       }

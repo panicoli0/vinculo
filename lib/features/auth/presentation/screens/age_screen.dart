@@ -84,12 +84,13 @@ class _AgeScreenState extends ConsumerState<AgeScreen> {
     super.dispose();
   }
 
-  /// [name] cut to the length the field accepts; empty when there is none.
+  /// [name] cut to the grapheme count the field accepts; empty when there is
+  /// none.
   static String _prefill(String? name) {
-    final String suggested = name ?? '';
+    final Characters suggested = (name ?? '').characters;
     return suggested.length > kDisplayNameMaxLength
-        ? suggested.substring(0, kDisplayNameMaxLength)
-        : suggested;
+        ? suggested.take(kDisplayNameMaxLength).string
+        : suggested.string;
   }
 
   /// Year as the server sees it: the rules use `request.time` in UTC, and a
@@ -301,7 +302,12 @@ class _AgeScreenState extends ConsumerState<AgeScreen> {
         inputFormatters: <TextInputFormatter>[
           LengthLimitingTextInputFormatter(kDisplayNameMaxLength),
         ],
-        decoration: InputDecoration(labelText: t.age.nameLabel),
+        decoration: InputDecoration(
+          labelText: t.age.nameLabel,
+          errorText: exceedsDisplayNameStorageLimit(_nameController.text)
+              ? t.age.nameTooLong
+              : null,
+        ),
         onChanged: (_) => setState(() {}),
       ),
       const SizedBox(height: AppSpacing.lg),
