@@ -63,6 +63,11 @@ String _$familyRepositoryHash() => r'5dc714c27ef647d5ef6f9a23845692c3d96edee3';
 ///
 /// Composición entre features, permitida solo acá (en
 /// `presentation/*_providers.dart`): la lista depende de quién esté dentro.
+///
+/// Con el reintento por defecto de Riverpod, a diferencia de `currentUser`:
+/// un *listen* de Firestore que falla no vuelve a emitir nunca más, así que
+/// sin reintento la consulta queda muerta hasta reiniciar la app, aunque se
+/// corrija la causa. Volver a suscribir es lo único que la revive.
 
 @ProviderFor(currentFamilies)
 final currentFamiliesProvider = CurrentFamiliesProvider._();
@@ -71,6 +76,11 @@ final currentFamiliesProvider = CurrentFamiliesProvider._();
 ///
 /// Composición entre features, permitida solo acá (en
 /// `presentation/*_providers.dart`): la lista depende de quién esté dentro.
+///
+/// Con el reintento por defecto de Riverpod, a diferencia de `currentUser`:
+/// un *listen* de Firestore que falla no vuelve a emitir nunca más, así que
+/// sin reintento la consulta queda muerta hasta reiniciar la app, aunque se
+/// corrija la causa. Volver a suscribir es lo único que la revive.
 
 final class CurrentFamiliesProvider
     extends
@@ -84,11 +94,16 @@ final class CurrentFamiliesProvider
   ///
   /// Composición entre features, permitida solo acá (en
   /// `presentation/*_providers.dart`): la lista depende de quién esté dentro.
+  ///
+  /// Con el reintento por defecto de Riverpod, a diferencia de `currentUser`:
+  /// un *listen* de Firestore que falla no vuelve a emitir nunca más, así que
+  /// sin reintento la consulta queda muerta hasta reiniciar la app, aunque se
+  /// corrija la causa. Volver a suscribir es lo único que la revive.
   CurrentFamiliesProvider._()
     : super(
         from: null,
         argument: null,
-        retry: _neverRetry,
+        retry: null,
         name: r'currentFamiliesProvider',
         isAutoDispose: false,
         dependencies: null,
@@ -110,4 +125,4 @@ final class CurrentFamiliesProvider
   }
 }
 
-String _$currentFamiliesHash() => r'7b8104dd115e3b2aa49565dbd55c269dfa6a73f1';
+String _$currentFamiliesHash() => r'7be43c7d7bc65fc7fb3c555316dc16accfd96188';
