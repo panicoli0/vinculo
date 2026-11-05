@@ -21,6 +21,10 @@ import 'features/auth/domain/account_deletion_repository.dart';
 import 'features/auth/domain/auth_repository.dart';
 import 'features/auth/domain/user_repository.dart';
 import 'features/auth/presentation/auth_providers.dart';
+import 'features/family/data/firestore_family_repository.dart';
+import 'features/family/data/in_memory_family_repository.dart';
+import 'features/family/domain/family_repository.dart';
+import 'features/family/presentation/family_providers.dart';
 import 'features/preferences/data/shared_prefs_preferences_repository.dart';
 import 'features/preferences/domain/device_preferences.dart';
 import 'features/preferences/domain/preferences_repository.dart';
@@ -88,6 +92,9 @@ Future<void> _boot() async {
   final AccountDeletionRepository accountDeletionRepository = config.useFirebase
       ? const CallableAccountDeletionRepository()
       : const InMemoryAccountDeletionRepository();
+  final FamilyRepository familyRepository = config.useFirebase
+      ? FirestoreFamilyRepository()
+      : InMemoryFamilyRepository();
 
   runApp(
     ProviderScope(
@@ -101,6 +108,7 @@ Future<void> _boot() async {
         accountDeletionRepositoryProvider.overrideWith(
           (Ref ref) => accountDeletionRepository,
         ),
+        familyRepositoryProvider.overrideWith((Ref ref) => familyRepository),
         // El gate de analytics.md §1 vive en core/, pero el consentimiento es
         // de una feature: el bootstrap, que conoce ambos lados, resuelve la
         // dependencia. Sin respuesta (null) la analítica queda APAGADA.

@@ -52,12 +52,16 @@
     "primaryLanguageEnglish": "English",
     "primaryLanguageSpanish": "Spanish"
   },
+  "createFamily": {
+    "title": "Name your family",
+    "subtitle": "This is the space you will share. You can change it later.",
+    "nameLabel": "Family name",
+    "nameHint": "The Garcías",
+    "confirm": "Create"
+  },
   "screens": {
     "signIn": {
       "title": "Sign in"
-    },
-    "familyNew": {
-      "title": "New family"
     },
     "invite": {
       "title": "Invitation"

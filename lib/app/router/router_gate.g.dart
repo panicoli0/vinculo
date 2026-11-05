@@ -8,7 +8,8 @@ part of 'router_gate.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Current [RouterGate], derived from the session and the user document.
+/// Current [RouterGate], derived from the session, the user document and the
+/// families the person belongs to.
 ///
 /// Síncrono a propósito: el `redirect` del router no puede esperar. Un error
 /// de Auth equivale a "sin sesión" para que el usuario pueda reintentar. Un
@@ -16,14 +17,12 @@ part of 'router_gate.dart';
 /// edad dejaría a un usuario existente en `/age`, donde `create` lo rechazan
 /// las reglas. Va a [RouterGate.profileUnavailable], que muestra el mensaje
 /// con reintento; si el stream sigue abierto, se recupera solo.
-///
-/// Todavía no hay repositorio de familias, así que [RouterGate.needsFamily] no
-/// se produce: con perfil, el resultado es [RouterGate.ready].
 
 @ProviderFor(routerGate)
 final routerGateProvider = RouterGateProvider._();
 
-/// Current [RouterGate], derived from the session and the user document.
+/// Current [RouterGate], derived from the session, the user document and the
+/// families the person belongs to.
 ///
 /// Síncrono a propósito: el `redirect` del router no puede esperar. Un error
 /// de Auth equivale a "sin sesión" para que el usuario pueda reintentar. Un
@@ -31,14 +30,12 @@ final routerGateProvider = RouterGateProvider._();
 /// edad dejaría a un usuario existente en `/age`, donde `create` lo rechazan
 /// las reglas. Va a [RouterGate.profileUnavailable], que muestra el mensaje
 /// con reintento; si el stream sigue abierto, se recupera solo.
-///
-/// Todavía no hay repositorio de familias, así que [RouterGate.needsFamily] no
-/// se produce: con perfil, el resultado es [RouterGate.ready].
 
 final class RouterGateProvider
     extends $FunctionalProvider<RouterGate, RouterGate, RouterGate>
     with $Provider<RouterGate> {
-  /// Current [RouterGate], derived from the session and the user document.
+  /// Current [RouterGate], derived from the session, the user document and the
+  /// families the person belongs to.
   ///
   /// Síncrono a propósito: el `redirect` del router no puede esperar. Un error
   /// de Auth equivale a "sin sesión" para que el usuario pueda reintentar. Un
@@ -46,9 +43,6 @@ final class RouterGateProvider
   /// edad dejaría a un usuario existente en `/age`, donde `create` lo rechazan
   /// las reglas. Va a [RouterGate.profileUnavailable], que muestra el mensaje
   /// con reintento; si el stream sigue abierto, se recupera solo.
-  ///
-  /// Todavía no hay repositorio de familias, así que [RouterGate.needsFamily] no
-  /// se produce: con perfil, el resultado es [RouterGate.ready].
   RouterGateProvider._()
     : super(
         from: null,
@@ -82,4 +76,4 @@ final class RouterGateProvider
   }
 }
 
-String _$routerGateHash() => r'd99e46878722b9ad27dcb4064e0d19740148b401';
+String _$routerGateHash() => r'ffb4235dd32489165755a0db2e6bea20ee0a53ec';

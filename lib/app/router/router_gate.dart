@@ -3,6 +3,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../features/auth/domain/app_user.dart';
 import '../../features/auth/domain/auth_session.dart';
 import '../../features/auth/presentation/auth_providers.dart';
+import '../../features/family/domain/family.dart';
+import '../../features/family/presentation/family_providers.dart';
 
 part 'router_gate.g.dart';
 
@@ -28,7 +30,8 @@ enum RouterGate {
   ready,
 }
 
-/// Current [RouterGate], derived from the session and the user document.
+/// Current [RouterGate], derived from the session, the user document and the
+/// families the person belongs to.
 ///
 /// Síncrono a propósito: el `redirect` del router no puede esperar. Un error
 /// de Auth equivale a "sin sesión" para que el usuario pueda reintentar. Un
@@ -36,25 +39,49 @@ enum RouterGate {
 /// edad dejaría a un usuario existente en `/age`, donde `create` lo rechazan
 /// las reglas. Va a [RouterGate.profileUnavailable], que muestra el mensaje
 /// con reintento; si el stream sigue abierto, se recupera solo.
-///
-/// Todavía no hay repositorio de familias, así que [RouterGate.needsFamily] no
-/// se produce: con perfil, el resultado es [RouterGate.ready].
 @Riverpod(keepAlive: true)
 RouterGate routerGate(Ref ref) {
   final AsyncValue<AuthSession> session = ref.watch(authSessionProvider);
   return switch (session.value) {
     null => session.hasError ? RouterGate.signedOut : RouterGate.loading,
     SignedOutSession() => RouterGate.signedOut,
-    SignedInSession() => _profileGate(ref.watch(currentUserProvider)),
+    SignedInSession() => _profileGate(ref),
   };
 }
 
-RouterGate _profileGate(AsyncValue<AppUser?> user) {
+RouterGate _profileGate(Ref ref) {
+  final AsyncValue<AppUser?> user = ref.watch(currentUserProvider);
   if (user.isLoading) {
     return RouterGate.loading;
   }
   if (user.hasError) {
     return RouterGate.profileUnavailable;
   }
-  return user.value == null ? RouterGate.needsProfile : RouterGate.ready;
+  if (user.value == null) {
+    return RouterGate.needsProfile;
+  }
+  return _familyGate(ref.watch(currentFamiliesProvider));
+}
+
+/// Where the family list leaves a person who already has a profile.
+///
+/// Una lista vacía es "todavía no tiene familia". Un error NO lo es: mandarlo
+/// a `/family/new` lo dejaría creando una segunda familia encima de la que ya
+/// tiene. Va a [RouterGate.profileUnavailable], que es la pantalla de "no
+/// pudimos cargar tu estado" con reintento y salida. Quien revive la consulta
+/// es el reintento del propio `currentFamilies`, no el botón de esa pantalla.
+///
+/// TODO(fase-2-family-message): esa pantalla lee el mensaje de error solo de
+/// `currentUser`, así que un fallo de familias se muestra con el texto
+/// genérico. Tiene que pasar a leer ambos lados cuando se arme el resto de la
+/// Fase 2.
+RouterGate _familyGate(AsyncValue<List<Family>> families) {
+  if (families.isLoading) {
+    return RouterGate.loading;
+  }
+  if (families.hasError) {
+    return RouterGate.profileUnavailable;
+  }
+  final List<Family> joined = families.value ?? const <Family>[];
+  return joined.isEmpty ? RouterGate.needsFamily : RouterGate.ready;
 }
