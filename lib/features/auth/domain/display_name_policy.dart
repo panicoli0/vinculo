@@ -8,13 +8,17 @@ const int kDisplayNameMinLength = 1;
 /// (`users.displayName`).
 const int kDisplayNameMaxLength = 40;
 
-/// Longest accepted display name in UTF-16 code units, after trimming; the
-/// sanity bound the Firestore rule applies to `users.displayName` and
+/// Longest accepted display name in UTF-16 code units; the storage sanity
+/// bound the Firestore rule applies to `users.displayName` and
 /// `families/{fid}/members/{uid}.displayName`.
+///
+/// La regla lo mide sobre el valor crudo, porque es el crudo el que se guarda;
+/// el cliente lo mide sobre el trimeado, que es lo que va a escribir.
 const int kDisplayNameMaxUtf16Units = 640;
 
-/// Whether [raw] fits the 40-grapheme product limit but not the Firestore
-/// sanity bound, so the screen can say why instead of just disabling the button.
+/// Whether [raw], once trimmed, is longer than the UTF-16 sanity bound the
+/// Firestore rule applies, so the screen can say why instead of only disabling
+/// the button.
 bool exceedsDisplayNameStorageLimit(String raw) =>
     raw.trim().length > kDisplayNameMaxUtf16Units;
 
@@ -27,8 +31,14 @@ bool exceedsDisplayNameStorageLimit(String raw) =>
 /// acepta ("Ana 👨‍👩‍👧‍👦") pero que esta función rechaza, con el botón de
 /// continuar apagado y sin ninguna explicación en pantalla. El segundo límite
 /// existe porque `size()` en `firestore.rules` cuenta unidades UTF-16 y no sabe
-/// contar grafemas: la regla usa una cota de sanidad de 640 = 40 x 16, con 16
-/// por encima de la peor secuencia RGI medida (15 unidades). Validar las dos
+/// contar grafemas, así que la regla aplica una cota de almacenamiento de 640
+/// unidades: un número arbitrario, holgado por encima de cualquier nombre real,
+/// que no se deriva de los 40 grafemas. No hay margen que recalcular — ningún
+/// multiplicador es demostrablemente seguro, porque las marcas combinantes
+/// dejan las unidades UTF-16 por grafema sin cota superior. Con emoji RGI la
+/// cota es inalcanzable (peor secuencia medida 15 unidades: 40 grafemas = 600),
+/// pero Zalgo llega a 840 unidades en 40 grafemas sin esfuerzo, y por eso se
+/// verifica acá en vez de confiar en el formatter del campo. Validar las dos
 /// acá es lo que garantiza que el cliente nunca mande un write que la regla
 /// rechace.
 bool isValidDisplayName(String raw) {
