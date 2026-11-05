@@ -21,6 +21,8 @@ fvm dart run slang                   # i18n — ALWAYS before build_runner
 fvm dart run build_runner build      # freezed / json_serializable / riverpod. No -d: 2.15.1 removed it
 fvm dart format .
 fvm flutter analyze                  # done means this ends at "No issues found!"
+                                     # run build_runner FIRST: analyze reads the generated
+                                     # files, so a stale one is an error, not silence
 
 cd functions && npm run build && npm run lint
 firebase emulators:start --project dev
@@ -108,11 +110,16 @@ providers are typed as the **interface** and throw `UnimplementedError` until
 `main.dart` overrides them — Firestore or callable implementations at runtime, the
 `InMemory*` doubles when `USE_FIREBASE=false`. Widget-local state (controllers,
 animations) lives in a `StatefulWidget`, not in Riverpod. Generated `.g.dart` and
-`.freezed.dart` files are committed and must match their source in the same commit.
+`.freezed.dart` files are committed and must match their source **in the same commit**:
+run `slang` and `build_runner` before `analyze`, never after. Generated files are not
+excluded from analysis, and nothing may re-exclude them.
 **Why:** `USE_FIREBASE=false` has to keep working with no Firebase at all — it is how
 the app is run and demonstrated without credentials, and the first thing that breaks it
 is a domain file that imports a plugin. Interface-typed providers are what make that
-swap a one-line override instead of a refactor.
+swap a one-line override instead of a refactor. The clause about generated files is not
+hygiene: while they were excluded, a `.g.dart` calling a function its source had already
+deleted reached `main`, the project did not compile, and `analyze` kept answering
+"No issues found!".
 
 ### 5. The two language axes never couple, and formality is per bond
 

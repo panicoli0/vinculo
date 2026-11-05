@@ -7,9 +7,13 @@ analyzer:
     strict-raw-types: true
   errors:
     invalid_annotation_target: ignore # freezed + json_serializable lo emiten en @Default/@JsonKey
-  exclude:
-    - "**/*.freezed.dart"
-    - "**/*.g.dart"
+
+  # Los archivos generados NO se excluyen a propósito. Estaban excluidos, y eso
+  # dejó pasar a `main` un `.g.dart` que llamaba a un `_neverRetry` que su
+  # fuente ya no definía: el proyecto no compilaba y `flutter analyze` seguía
+  # diciendo "No issues found!". Cada generador emite su propio
+  # `// ignore_for_file: type=lint, type=warning`, así que analizarlos no
+  # agrega ruido de lint pero sí vuelve visibles los errores de verdad.
 
 linter:
   rules:
