@@ -177,6 +177,9 @@ class Translations$age$es {
 	/// es: '¿Cómo te llamas?'
 	String get nameLabel => '¿Cómo te llamas?';
 
+	/// es: 'Escribe tu nombre para continuar.'
+	String get nameRequired => 'Escribe tu nombre para continuar.';
+
 	/// es: 'Ese nombre es demasiado largo para guardarlo. Prueba con uno más corto.'
 	String get nameTooLong => 'Ese nombre es demasiado largo para guardarlo. Prueba con uno más corto.';
 
@@ -532,6 +535,7 @@ extension on Translations {
 			'age.title' => '¿En qué año naciste?',
 			'age.yearLabel' => 'Año de nacimiento',
 			'age.nameLabel' => '¿Cómo te llamas?',
+			'age.nameRequired' => 'Escribe tu nombre para continuar.',
 			'age.nameTooLong' => 'Ese nombre es demasiado largo para guardarlo. Prueba con uno más corto.',
 			'age.confirm' => 'Continuar',
 			'age.blocked' => 'Para usar la app, pídele a tu madre, padre o tutor que te cree un perfil desde su teléfono.',

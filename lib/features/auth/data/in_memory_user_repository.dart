@@ -6,6 +6,7 @@ import '../../content/domain/card_language_mode.dart';
 import '../../preferences/domain/ui_locale_option.dart';
 import '../domain/account_type.dart';
 import '../domain/app_user.dart';
+import '../domain/display_name_policy.dart';
 import '../domain/user_repository.dart';
 
 /// [UserRepository] that keeps the users in memory, for `USE_FIREBASE=false`.
@@ -63,6 +64,13 @@ final class InMemoryUserRepository implements UserRepository {
     String? displayName,
     UiLocaleOption? uiLocale,
   }) async {
+    // El contrato de `UserRepository.updateProfile` exige un nombre válido; se
+    // verifica también acá para que `USE_FIREBASE=false` no sea el camino
+    // donde el defecto pasa inadvertido hasta llegar a Firestore.
+    assert(
+      displayName == null || isValidDisplayName(displayName),
+      'displayName must pass isValidDisplayName before it reaches the store',
+    );
     final AppUser current = _current(uid);
     _put(
       current.copyWith(

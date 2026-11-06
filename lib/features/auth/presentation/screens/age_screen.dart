@@ -98,6 +98,25 @@ class _AgeScreenState extends ConsumerState<AgeScreen> {
     return until != null && until.isAfter(DateTime.now());
   }
 
+  /// Why the name field blocks "continue", or null while it does not.
+  ///
+  /// Un nombre de solo espacios reproduce la forma del bug original: apaga el
+  /// botón, porque `isValidDisplayName` exige al menos un grafema trimeado,
+  /// pero sin mensaje no hay nada en pantalla que lo explique. Es además el
+  /// único estado que la regla de Firestore delega enteramente al cliente: la
+  /// cota del servidor mide el valor crudo y no trimea.
+  String? _nameError(Translations t) {
+    final String raw = _nameController.text;
+    final String trimmed = raw.trim();
+    if (raw.isNotEmpty && trimmed.isEmpty) {
+      return t.age.nameRequired;
+    }
+    if (trimmed.isNotEmpty && !isValidDisplayName(raw)) {
+      return t.age.nameTooLong;
+    }
+    return null;
+  }
+
   bool get _canContinue =>
       _birthYear != null &&
       isValidDisplayName(_nameController.text) &&
@@ -300,11 +319,7 @@ class _AgeScreenState extends ConsumerState<AgeScreen> {
         ],
         decoration: InputDecoration(
           labelText: t.age.nameLabel,
-          errorText:
-              _nameController.text.trim().isNotEmpty &&
-                  !isValidDisplayName(_nameController.text)
-              ? t.age.nameTooLong
-              : null,
+          errorText: _nameError(t),
         ),
         onChanged: (_) => setState(() {}),
       ),

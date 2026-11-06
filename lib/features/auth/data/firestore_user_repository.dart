@@ -9,6 +9,7 @@ import '../../content/domain/card_language_mode.dart';
 import '../../preferences/domain/ui_locale_option.dart';
 import '../domain/account_type.dart';
 import '../domain/app_user.dart';
+import '../domain/display_name_policy.dart';
 import '../domain/user_repository.dart';
 import 'app_user_mapper.dart';
 
@@ -101,6 +102,12 @@ final class FirestoreUserRepository implements UserRepository {
     String? displayName,
     UiLocaleOption? uiLocale,
   }) {
+    // El contrato de `UserRepository.updateProfile` exige un nombre válido;
+    // la regla de Firestore rechaza el write si no lo es.
+    assert(
+      displayName == null || isValidDisplayName(displayName),
+      'displayName must pass isValidDisplayName before it reaches Firestore',
+    );
     return _update(uid, <String, Object?>{
       UserField.displayName.key: ?displayName,
       UserField.uiLocale.key: ?uiLocale?.name,

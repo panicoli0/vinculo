@@ -133,6 +133,7 @@ class _Translations$age$en extends Translations$age$es {
 	@override String get title => 'What year were you born?';
 	@override String get yearLabel => 'Birth year';
 	@override String get nameLabel => 'What\'s your name?';
+	@override String get nameRequired => 'Enter your name to continue.';
 	@override String get nameTooLong => 'That name is too long to save. Try a shorter one.';
 	@override String get confirm => 'Continue';
 	@override String get blocked => 'To use the app, ask your parent or guardian to create a profile for you from their phone.';
@@ -413,6 +414,7 @@ extension on TranslationsEn {
 			'age.title' => 'What year were you born?',
 			'age.yearLabel' => 'Birth year',
 			'age.nameLabel' => 'What\'s your name?',
+			'age.nameRequired' => 'Enter your name to continue.',
 			'age.nameTooLong' => 'That name is too long to save. Try a shorter one.',
 			'age.confirm' => 'Continue',
 			'age.blocked' => 'To use the app, ask your parent or guardian to create a profile for you from their phone.',

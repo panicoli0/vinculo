@@ -2,6 +2,7 @@ import '../../content/domain/card_language.dart';
 import '../../content/domain/card_language_mode.dart';
 import '../../preferences/domain/ui_locale_option.dart';
 import 'app_user.dart';
+import 'display_name_policy.dart';
 
 /// Access to the private `users/{uid}` document.
 abstract interface class UserRepository {
@@ -22,6 +23,14 @@ abstract interface class UserRepository {
   });
 
   /// Updates the given profile fields; a null argument is left untouched.
+  ///
+  /// A non-null `displayName` must already satisfy [isValidDisplayName]: the
+  /// caller validates, not the implementation.
+  ///
+  /// La cota es parte del contrato porque la regla de Firestore rechaza el
+  /// write si no se cumple, y mandar un write que las reglas rechazan es
+  /// exactamente lo que prohíbe la regla 3 de `AGENTS.md`. Las
+  /// implementaciones lo verifican con un `assert`, que no corre en release.
   Future<void> updateProfile({
     required String uid,
     String? displayName,
