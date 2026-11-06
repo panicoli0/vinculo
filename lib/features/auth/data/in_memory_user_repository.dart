@@ -44,6 +44,15 @@ final class InMemoryUserRepository implements UserRepository {
     required CardLanguageMode cardLanguageMode,
     required CardLanguage primaryLanguage,
   }) async {
+    // Mismo contrato que `updateProfile`: el nombre se guarda tal cual, y la
+    // regla acota el valor crudo. Hoy el llamador ya pasa `.trim()`, pero el
+    // assert lo documenta y lo atrapa.
+    assert(
+      isValidDisplayName(displayName) &&
+          displayName.length <= kDisplayNameMaxUtf16Units,
+      'displayName must be the stored value: valid and at most '
+      '$kDisplayNameMaxUtf16Units UTF-16 units raw',
+    );
     _put(
       AppUser(
         uid: uid,
@@ -64,12 +73,15 @@ final class InMemoryUserRepository implements UserRepository {
     String? displayName,
     UiLocaleOption? uiLocale,
   }) async {
-    // El contrato de `UserRepository.updateProfile` exige un nombre válido; se
-    // verifica también acá para que `USE_FIREBASE=false` no sea el camino
+    // El contrato de `UserRepository.updateProfile` exige el valor a guardar;
+    // se verifica también acá para que `USE_FIREBASE=false` no sea el camino
     // donde el defecto pasa inadvertido hasta llegar a Firestore.
     assert(
-      displayName == null || isValidDisplayName(displayName),
-      'displayName must pass isValidDisplayName before it reaches the store',
+      displayName == null ||
+          (isValidDisplayName(displayName) &&
+              displayName.length <= kDisplayNameMaxUtf16Units),
+      'displayName must be the stored value: valid and at most '
+      '$kDisplayNameMaxUtf16Units UTF-16 units raw',
     );
     final AppUser current = _current(uid);
     _put(

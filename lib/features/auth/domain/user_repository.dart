@@ -13,6 +13,11 @@ abstract interface class UserRepository {
   ///
   /// Escribe solo el mapa cerrado que acepta la regla; nunca `consent`,
   /// `joinedVia` ni `firstAnsweredAt`.
+  ///
+  /// The `displayName` is stored verbatim: it must be the value to store,
+  /// already trimmed, satisfying [isValidDisplayName] and at most
+  /// [kDisplayNameMaxUtf16Units] UTF-16 units **as passed**. La regla acota el
+  /// valor crudo, no el trimeado: `isValidDisplayName` sola no alcanza.
   Future<void> createAdult({
     required String uid,
     required String displayName,
@@ -24,8 +29,10 @@ abstract interface class UserRepository {
 
   /// Updates the given profile fields; a null argument is left untouched.
   ///
-  /// A non-null `displayName` must already satisfy [isValidDisplayName]: the
-  /// caller validates, not the implementation.
+  /// A non-null `displayName` is stored verbatim: it must be the value to
+  /// store, already trimmed, satisfying [isValidDisplayName] and at most
+  /// [kDisplayNameMaxUtf16Units] UTF-16 units **as passed**. La regla acota el
+  /// valor crudo, no el trimeado: `isValidDisplayName` sola no alcanza.
   ///
   /// La cota es parte del contrato porque la regla de Firestore rechaza el
   /// write si no se cumple, y mandar un write que las reglas rechazan es
