@@ -1,6 +1,14 @@
 # Uncomment this line to define a global platform for your project
 platform :ios, '15.0'
 
+# firebase_core 5.1.0 fija el SDK iOS en 12.19.3, pero ese parche solo se
+# publicó en CocoaPods para Firebase, FirebaseCore y FirebaseFirestore:
+# FirebaseAppCheck, FirebaseAuth y FirebaseFunctions siguen en 12.19.0, así que
+# `~> 12.19.3` no resuelve. Pinamos el piso en el último parche publicado para
+# todos los pods; los que sí tengan 12.19.3 lo toman igual (`~> 12.19.0`).
+# Al subir firebase_core, comprobar en cdn.cocoapods.org si este pin ya sobra.
+$FirebaseSDKVersion = '12.19.0'
+
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
@@ -45,5 +53,15 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    # Varias dependencias transitivas traen mínimos propios muy viejos (9.0,
+    # 10.0, 11.0) y Xcode avisa por cada una. Subimos al mínimo del proyecto;
+    # nunca bajamos el de un pod que ya pida más que nosotros.
+    target.build_configurations.each do |config|
+      current = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+      if current.nil? || Gem::Version.new(current) < Gem::Version.new('15.0')
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      end
+    end
   end
 end

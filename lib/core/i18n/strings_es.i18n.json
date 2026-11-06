@@ -42,6 +42,8 @@
     "title": "¿En qué año naciste?",
     "yearLabel": "Año de nacimiento",
     "nameLabel": "¿Cómo te llamas?",
+    "nameRequired": "Escribe tu nombre para continuar.",
+    "nameTooLong": "Ese nombre es demasiado largo para guardarlo. Prueba con uno más corto.",
     "confirm": "Continuar",
     "blocked": "Para usar la app, pídele a tu madre, padre o tutor que te cree un perfil desde su teléfono.",
     "cardLanguageTitle": "¿En qué idioma quieres ver las preguntas?",

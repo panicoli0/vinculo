@@ -9,6 +9,7 @@ import '../../content/domain/card_language_mode.dart';
 import '../../preferences/domain/ui_locale_option.dart';
 import '../domain/account_type.dart';
 import '../domain/app_user.dart';
+import '../domain/display_name_policy.dart';
 import '../domain/user_repository.dart';
 import 'app_user_mapper.dart';
 
@@ -81,6 +82,15 @@ final class FirestoreUserRepository implements UserRepository {
     required CardLanguageMode cardLanguageMode,
     required CardLanguage primaryLanguage,
   }) {
+    // Mismo contrato que `updateProfile`: el nombre se guarda tal cual, y la
+    // regla acota el valor crudo. Hoy el llamador ya pasa `.trim()`, pero el
+    // assert lo documenta y lo atrapa.
+    assert(
+      isValidDisplayName(displayName) &&
+          displayName.length <= kDisplayNameMaxUtf16Units,
+      'displayName must be the stored value: valid and at most '
+      '$kDisplayNameMaxUtf16Units UTF-16 units raw',
+    );
     // Mapa cerrado: la regla de `create` solo acepta estas siete claves.
     return _write(
       () => _doc(uid).set(<String, Object?>{
@@ -101,6 +111,16 @@ final class FirestoreUserRepository implements UserRepository {
     String? displayName,
     UiLocaleOption? uiLocale,
   }) {
+    // El contrato de `UserRepository.updateProfile` exige el valor a guardar;
+    // la regla de Firestore acota el crudo, no el trimeado, así que
+    // `isValidDisplayName` sola no alcanza.
+    assert(
+      displayName == null ||
+          (isValidDisplayName(displayName) &&
+              displayName.length <= kDisplayNameMaxUtf16Units),
+      'displayName must be the stored value: valid and at most '
+      '$kDisplayNameMaxUtf16Units UTF-16 units raw',
+    );
     return _update(uid, <String, Object?>{
       UserField.displayName.key: ?displayName,
       UserField.uiLocale.key: ?uiLocale?.name,

@@ -84,13 +84,10 @@ class _AgeScreenState extends ConsumerState<AgeScreen> {
     super.dispose();
   }
 
-  /// [name] cut to the length the field accepts; empty when there is none.
-  static String _prefill(String? name) {
-    final String suggested = name ?? '';
-    return suggested.length > kDisplayNameMaxLength
-        ? suggested.substring(0, kDisplayNameMaxLength)
-        : suggested;
-  }
+  /// [name] cut to the grapheme count the field accepts; empty when there is
+  /// none.
+  static String _prefill(String? name) =>
+      (name ?? '').characters.take(kDisplayNameMaxLength).string;
 
   /// Year as the server sees it: the rules use `request.time` in UTC, and a
   /// local year one ahead would pass the client and fail the rule.
@@ -99,6 +96,25 @@ class _AgeScreenState extends ConsumerState<AgeScreen> {
   bool _isLocked(DevicePreferences preferences) {
     final DateTime? until = preferences.ageGateLockedUntil;
     return until != null && until.isAfter(DateTime.now());
+  }
+
+  /// Why the name field blocks "continue", or null while it does not.
+  ///
+  /// Un nombre de solo espacios reproduce la forma del bug original: apaga el
+  /// botón, porque `isValidDisplayName` exige al menos un grafema trimeado,
+  /// pero sin mensaje no hay nada en pantalla que lo explique. Es además el
+  /// único estado que la regla de Firestore delega enteramente al cliente: la
+  /// cota del servidor mide el valor crudo y no trimea.
+  String? _nameError(Translations t) {
+    final String raw = _nameController.text;
+    final String trimmed = raw.trim();
+    if (raw.isNotEmpty && trimmed.isEmpty) {
+      return t.age.nameRequired;
+    }
+    if (trimmed.isNotEmpty && !isValidDisplayName(raw)) {
+      return t.age.nameTooLong;
+    }
+    return null;
   }
 
   bool get _canContinue =>
@@ -301,7 +317,10 @@ class _AgeScreenState extends ConsumerState<AgeScreen> {
         inputFormatters: <TextInputFormatter>[
           LengthLimitingTextInputFormatter(kDisplayNameMaxLength),
         ],
-        decoration: InputDecoration(labelText: t.age.nameLabel),
+        decoration: InputDecoration(
+          labelText: t.age.nameLabel,
+          errorText: _nameError(t),
+        ),
         onChanged: (_) => setState(() {}),
       ),
       const SizedBox(height: AppSpacing.lg),
