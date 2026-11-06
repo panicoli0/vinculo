@@ -1,0 +1,67 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "dev · Firebase real",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["--flavor", "dev", "--dart-define-from-file=env/dev.json"]
+    },
+    {
+      "name": "dev · sin Firebase (flujo completo, login falso)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define-from-file=env/dev.json",
+        "--dart-define=USE_FIREBASE=false"
+      ]
+    },
+    {
+      "name": "dev · emuladores Firebase",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define-from-file=env/dev.json",
+        "--dart-define=USE_EMULATORS=true"
+      ]
+    },
+    {
+      "name": "dev · profile",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "profile",
+      "args": ["--flavor", "dev", "--dart-define-from-file=env/dev.json"]
+    },
+    {
+      "name": "dev · release",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "release",
+      "args": ["--flavor", "dev", "--dart-define-from-file=env/dev.json"]
+    },
+    {
+      "name": "prod · Firebase real",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["--flavor", "prod", "--dart-define-from-file=env/prod.json"]
+    },
+    {
+      "name": "prod · release",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "release",
+      "args": ["--flavor", "prod", "--dart-define-from-file=env/prod.json"]
+    }
+  ]
+}
