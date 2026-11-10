@@ -616,7 +616,9 @@ It has no \`## Acceptance criteria\` section, and the run is required to check t
     event "agent verdict: $verdict"
 
     case "$verdict" in
-      BLOCKED*) finish_blocked "$issue" "" "the agent stopped on its own: ${verdict#BLOCKED}" ;;
+      # `BLOCKED: reason` — strip the label and the separator, not just the
+      # label, or the message reads "stopped on its own: : reason".
+      BLOCKED*) finish_blocked "$issue" "" "the agent stopped on its own — ${verdict#BLOCKED: }" ;;
     esac
 
     if run_checks "$worktree"; then break; fi
@@ -768,7 +770,7 @@ review_pass() {
   local changed=0; [ "$new_head" != "$head_sha" ] && changed=1
 
   case "$verdict" in
-    BLOCKED*) finish_blocked "$issue" "$pr" "the agent stopped on its own: ${verdict#BLOCKED}" ;;
+    BLOCKED*) finish_blocked "$issue" "$pr" "the agent stopped on its own — ${verdict#BLOCKED: }" ;;
     NO_FINDINGS|REJECTED_ALL|FIXED) : ;;
     *) finish_blocked "$issue" "$pr" "the agent returned no usable verdict (got '$verdict')" ;;
   esac
