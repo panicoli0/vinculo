@@ -52,6 +52,7 @@ Status lines — `IDLE`, `SKIP`, `PR_OPENED`, `WAITING_QODO`, `ROUND`, `READY`,
 | Rounds in which the agent changes code for the reviewer | **2** |
 | Silence from the reviewer before stopping | **45 min** |
 | Wall clock for one agent invocation | **45 min** |
+| Wall clock for any single build or check step | **15 min** |
 | Tickets per pass | **1** |
 
 They live at the top of `agent-run.sh` and every one can be overridden from the
@@ -62,6 +63,17 @@ asked to respect is a hope; a retry limit a script counts is a fact. The round
 counter is read back off the pull request — each round comment carries a
 `<!-- factory round=K fixes=N head=<sha> -->` marker — so it survives a crash,
 a restart, and the agent having no memory of earlier passes.
+
+**Every external command is bounded, not just the agent.** `with_timeout` runs
+each one in its own process group and signals the group, so nothing a step
+started can outlive it. That generality was bought the hard way: on the first
+real run, `fvm flutter pub get` found the pinned SDK missing from the cache,
+asked *"Would you like to install it now?"*, and — with no terminal attached —
+spun at 91% CPU for eighteen minutes. The agent had a watchdog; the step before
+it did not, so the pass held the lock and the ticket sat in `agent-working`
+with no pull request and nothing in the log. Preflight now also checks that the
+SDK pinned in `.fvmrc` is actually in the fvm cache, because that check cannot
+hang and turns the same failure into one readable line.
 
 **The runner writes that marker, not the agent.** It also refuses to answer a
 review of a commit it has already answered, and refuses a `FIXED` verdict that

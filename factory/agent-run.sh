@@ -53,7 +53,9 @@ MAX_REVIEW_ROUNDS="${FACTORY_MAX_REVIEW_ROUNDS:-3}"   # total rounds of review a
 MAX_CHECK_ATTEMPTS="${FACTORY_MAX_CHECK_ATTEMPTS:-2}" # attempts to get the checks green while implementing
 QODO_WAIT_MINUTES="${FACTORY_QODO_WAIT_MINUTES:-45}"  # silence from the reviewer after which we stop
 AGENT_TIMEOUT_SECONDS="${FACTORY_AGENT_TIMEOUT:-2700}"
+STEP_TIMEOUT_SECONDS="${FACTORY_STEP_TIMEOUT:-900}"   # any single build or check step
 QUEUE_LIMIT="${FACTORY_QUEUE_LIMIT:-200}"             # issues fetched when reading the queue
+FVM_CACHE="${FVM_CACHE_PATH:-$HOME/fvm/versions}"
 
 LABEL_READY="ready-for-agent"
 LABEL_WORKING="agent-working"
@@ -198,6 +200,23 @@ preflight() {
   done
   gh auth status >/dev/null 2>&1 || { status "SKIP: gh is not authenticated"; exit 0; }
 
+  # The pinned SDK has to be in the cache before anything calls `fvm`.
+  #
+  # When it is missing, fvm does not fail: it asks "Would you like to install
+  # it now?" and, with no terminal attached, spins at full CPU forever instead
+  # of answering itself. Redirecting stdin from /dev/null does not stop it, and
+  # this version has no `--skip-input`. It is the same shape as the
+  # `flutterfire` hang this project already documented.
+  #
+  # So the cache is checked on disk, which cannot hang, and a missing SDK ends
+  # the pass in one readable line rather than eighteen minutes of nothing.
+  local pinned
+  pinned="$(jq -r '.flutter // empty' "$REPO_DIR/.fvmrc" 2>/dev/null)"
+  if [ -n "$pinned" ] && [ ! -d "$FVM_CACHE/$pinned" ]; then
+    status "SKIP: Flutter $pinned is pinned in .fvmrc but is not in the fvm cache ($FVM_CACHE). Run 'fvm install $pinned --setup' — until then every fvm command prompts to install it and hangs instead of failing."
+    exit 0
+  fi
+
   cd "$REPO_DIR" 2>/dev/null || { status "SKIP: $REPO_DIR is not there"; exit 0; }
   git fetch origin --quiet || { status "SKIP: git fetch failed"; exit 0; }
 
@@ -262,21 +281,56 @@ slugify() {
 }
 
 # ---------------------------------------------------------------------------
-# Running the agent
+# Timeouts
 # ---------------------------------------------------------------------------
 #
-# A portable watchdog: macOS ships no `timeout`. The agent runs in its own
-# process group so the timeout reaches everything it started — a permitted
-# `build_runner` still grinding when the timer fires would otherwise keep
-# writing into the worktree while the next attempt began.
+# macOS ships no `timeout`, so this is it. **Every** external command the
+# runner starts goes through here, not just the agent.
+#
+# That generality is the lesson of a real stall: `fvm flutter pub get` found
+# the pinned SDK missing, asked "Would you like to install it now?", and with
+# no terminal attached spun at 91% CPU for eighteen minutes. The agent had a
+# watchdog and nothing else did, so the pass held the lock and the ticket sat
+# in `agent-working` with no pull request. A step with no timeout is a step
+# that can stop the factory.
+#
+# The command runs in its own process group and the timeout signals the group,
+# so a tool it started cannot outlive it and keep writing into the worktree.
+#
+# Usage:  with_timeout <seconds> <label> <command...>   [redirections as usual]
+with_timeout() {
+  local secs="$1" label="$2"; shift 2
+  set -m
+  ( "$@" ) &
+  local pid=$!
+  set +m
+  (
+    sleep "$secs"
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    sleep 10
+    kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+  ) &
+  local killer=$!
+  wait "$pid"; local rc=$?
+  kill "$killer" 2>/dev/null; wait "$killer" 2>/dev/null
+  if [ "$rc" -ge 128 ]; then
+    TIMED_OUT="$label"
+    event "TIMEOUT after ${secs}s: $label"
+    return 124
+  fi
+  return "$rc"
+}
+
+# ---------------------------------------------------------------------------
+# Running the agent
+# ---------------------------------------------------------------------------
 run_agent() {
   local worktree="$1" prompt_file="$2" label="$3"
   local out="$RUN_LOG_DIR/$RUN_ID.$label.agent.log"
 
   event "agent: $label starting (timeout ${AGENT_TIMEOUT_SECONDS}s)"
 
-  set -m
-  (
+  run_claude() {
     cd "$worktree" || exit 127
     # Globbing is off while the two tool lists are word-split: patterns like
     # `Edit(docs/**)` must reach the CLI intact, not expand against the tree.
@@ -288,25 +342,11 @@ run_agent() {
       --output-format text \
       --allowedTools $ALLOWED_TOOLS \
       --disallowedTools $DENIED_TOOLS
-  ) >"$out" 2>&1 &
-  local pid=$!
-  set +m
+  }
 
-  (
-    sleep "$AGENT_TIMEOUT_SECONDS"
-    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
-    sleep 10
-    kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
-  ) &
-  local killer=$!
-
-  wait "$pid"; local rc=$?
-  kill "$killer" 2>/dev/null; wait "$killer" 2>/dev/null
-
-  if [ "$rc" -ge 128 ]; then
-    event "agent: $label hit the ${AGENT_TIMEOUT_SECONDS}s timeout"
-    return 124
-  fi
+  with_timeout "$AGENT_TIMEOUT_SECONDS" "agent $label" run_claude >"$out" 2>&1
+  local rc=$?
+  [ "$rc" = "124" ] && return 124
   event "agent: $label finished rc=$rc (transcript: ${out##*/})"
   return "$rc"
 }
@@ -347,26 +387,34 @@ run_checks() {
   cp -n lib/core/firebase/firebase_options_prod.dart.example lib/core/firebase/firebase_options_prod.dart 2>/dev/null
   cp -n env/example.json env/dev.json 2>/dev/null
 
-  local step
-  for step in \
-    "fvm flutter pub get" \
-    "fvm dart run slang" \
-    "fvm dart run build_runner build" \
-    "fvm dart format ."
-  do
-    event "check: $step"
-    if ! { echo "### $step"; eval "$step"; } >>"$out" 2>&1; then
-      CHECK_FAILURE="$step failed — see ${out##*/}"
-      event "check FAILED: $step"
+  # Each step is an argument list, not a string fed to `eval`, and each one is
+  # bounded. A build step that hangs used to hang the whole factory.
+  run_step() { # run_step <label> <command...>
+    local label="$1"; shift
+    event "check: $label"
+    echo "### $label" >>"$out"
+    if ! with_timeout "$STEP_TIMEOUT_SECONDS" "$label" "$@" >>"$out" 2>&1; then
+      if [ "${TIMED_OUT:-}" = "$label" ]; then
+        CHECK_FAILURE="$label did not finish within ${STEP_TIMEOUT_SECONDS}s"
+      else
+        CHECK_FAILURE="$label failed — see ${out##*/}"
+      fi
+      event "check FAILED: $label"
       return 1
     fi
-  done
+    return 0
+  }
+
+  run_step "fvm flutter pub get"              fvm flutter pub get              || return 1
+  run_step "fvm dart run slang"               fvm dart run slang               || return 1
+  run_step "fvm dart run build_runner build"  fvm dart run build_runner build  || return 1
+  run_step "fvm dart format ."                fvm dart format .                || return 1
 
   # `analyze` goes to its own file, truncated every time. Appending retries to
   # one log and grepping the whole thing lets an earlier attempt's clean line
   # vouch for a later attempt that was not clean.
   event "check: fvm flutter analyze"
-  fvm flutter analyze >"$analyze_out" 2>&1
+  with_timeout "$STEP_TIMEOUT_SECONDS" "fvm flutter analyze" fvm flutter analyze >"$analyze_out" 2>&1
   cat "$analyze_out" >>"$out"
   if ! grep -q "No issues found!" "$analyze_out"; then
     CHECK_FAILURE="flutter analyze did not end at 'No issues found!' — see ${analyze_out##*/}"
@@ -375,13 +423,9 @@ run_checks() {
   fi
 
   if git diff --name-only "$MAIN_SHA...HEAD" | grep -q '^functions/'; then
-    event "check: functions build + lint (the diff touches functions/)"
-    if ! { npm --prefix functions ci \
-        && npm --prefix functions run build \
-        && npm --prefix functions run lint; } >>"$out" 2>&1; then
-      CHECK_FAILURE="the Cloud Functions build or lint failed — see ${out##*/}"
-      return 1
-    fi
+    run_step "npm --prefix functions ci"        npm --prefix functions ci        || return 1
+    run_step "npm --prefix functions run build" npm --prefix functions run build || return 1
+    run_step "npm --prefix functions run lint"  npm --prefix functions run lint  || return 1
   fi
 
   # The rule 4 gate: after regenerating, nothing may be uncommitted. The local
@@ -516,7 +560,8 @@ It has no \`## Acceptance criteria\` section, and the run is required to check t
 
   rm -rf "$worktree"
   git -C "$REPO_DIR" worktree prune
-  git -C "$REPO_DIR" worktree add --force -B "$branch" "$worktree" "$MAIN_SHA" >>"$RUN_LOG" 2>&1 \
+  with_timeout "$STEP_TIMEOUT_SECONDS" "git worktree add" \
+      git -C "$REPO_DIR" worktree add --force -B "$branch" "$worktree" "$MAIN_SHA" >>"$RUN_LOG" 2>&1 \
     || finish_blocked "$issue" "" "could not create the worktree for \`$branch\`"
   exclude_io_dir "$worktree" \
     || finish_blocked "$issue" "" "could not make \`$IO_DIR/\` invisible to git in the worktree; the clean-tree gate would reject every delivery"
@@ -525,11 +570,18 @@ It has no \`## Acceptance criteria\` section, and the run is required to check t
   # The agent has no `gh`. Everything it needs about the ticket arrives as a file.
   printf '# Ticket #%s — %s\n\n%s\n' "$issue" "$title" "$body" >"$worktree/$IO_DIR/ticket.md"
 
-  ( cd "$worktree" \
-      && cp -n lib/core/firebase/firebase_options_dev.dart.example  lib/core/firebase/firebase_options_dev.dart \
-      && cp -n lib/core/firebase/firebase_options_prod.dart.example lib/core/firebase/firebase_options_prod.dart \
-      && cp -n env/example.json env/dev.json \
-      && fvm flutter pub get ) >>"$RUN_LOG" 2>&1
+  # Seed the local-only files and warm pub, so the agent's first `analyze` is
+  # meaningful. Bounded like everything else: this is the step whose unbounded
+  # version spun for eighteen minutes on a missing SDK prompt.
+  prepare_worktree() {
+    cd "$worktree" || return 1
+    cp -n lib/core/firebase/firebase_options_dev.dart.example  lib/core/firebase/firebase_options_dev.dart
+    cp -n lib/core/firebase/firebase_options_prod.dart.example lib/core/firebase/firebase_options_prod.dart
+    cp -n env/example.json env/dev.json
+    fvm flutter pub get
+  }
+  with_timeout "$STEP_TIMEOUT_SECONDS" "prepare worktree" prepare_worktree >>"$RUN_LOG" 2>&1 \
+    || finish_blocked "$issue" "" "preparing the worktree failed or timed out before the agent started"
 
   local prompt="$worktree/$IO_DIR/prompt.md"
   sed -e "s|{{ISSUE}}|$issue|g" -e "s|{{BRANCH}}|$branch|g" -e "s|{{REPO}}|$REPO_SLUG|g" \
