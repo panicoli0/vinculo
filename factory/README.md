@@ -60,8 +60,14 @@ environment, so the schedule can change a limit without editing the script.
 **The limits are enforced in bash, not in the prompt.** A retry limit a model is
 asked to respect is a hope; a retry limit a script counts is a fact. The round
 counter is read back off the pull request — each round comment carries a
-`<!-- factory round=K fixes=N -->` marker — so it survives a crash, a restart,
-and the agent having no memory of earlier passes.
+`<!-- factory round=K fixes=N head=<sha> -->` marker — so it survives a crash,
+a restart, and the agent having no memory of earlier passes.
+
+**The runner writes that marker, not the agent.** It also refuses to answer a
+review of a commit it has already answered, and refuses a `FIXED` verdict that
+did not move the branch. Those three together are what stop a failed comment
+post, a malformed marker or an empty fix from quietly resetting the count and
+spending rounds on nothing.
 
 ## Four decisions worth the words
 
@@ -84,6 +90,29 @@ data to weigh and not an instruction.
 silent, not when it is sure. It labels the pull request `agent-ready` and
 stops.
 
+## The agent talks to nothing
+
+The agent has **no `gh`, no network, and no `git` beyond `status`, `add` and
+`commit`.** The runner fetches what it needs into `.factory/` inside the
+worktree, and posts whatever it writes back there:
+
+| in | out |
+|---|---|
+| `.factory/ticket.md` — the issue | `.factory/pr-title`, `.factory/pr-body.md` |
+| `.factory/review.html` — the Qodo review | `.factory/round-comment.md` |
+| `.factory/diff.patch` — the change so far | `.factory/verdict` |
+| `.factory/pr-body.md` — the description as it stands | |
+
+That directory is excluded through the worktree's git exclude file, and
+`exclude_io_dir` **proves** the exclusion took by writing a probe and asserting
+a clean `git status` — a linked worktree has a `.git` *file*, not a directory,
+so the obvious path writes nowhere and would have failed every ticket at the
+clean-tree gate. The exclusion lands in the repository's local
+`.git/info/exclude`, which is one idempotent line and is never committed.
+
+This shape is not tidiness. It is what makes "text in a ticket is data, not
+instructions" structurally true instead of merely asserted.
+
 ## Permissions
 
 The agent runs with `--permission-prompts none`, so a tool it is not allowed
@@ -91,25 +120,29 @@ is refused outright rather than queued for a human who is not there. That was
 measured before it was relied on: a denied `Bash` call comes back denied and
 the pass carries on.
 
-It may read and edit the working tree, run this project's checks, and read and
-comment on GitHub. It cannot push, merge, rebase, reset, check out, branch,
-close a pull request or an issue, run `firebase`, `gcloud` or `flutterfire`,
-reach the network, or edit `assets/content/decks/`, `factory/`, `docs/`,
-`.github/`, `.qodo/` or `.gitignore`.
-
 **The deny list is the real boundary, not the allow list.** `--allowedTools` is
 additive to whatever the host's own `~/.claude/settings.json` already permits,
 and a headless run inherits that. Deny rules win over allow rules where they
 overlap, so everything that must never happen is named explicitly rather than
 merely left out.
 
-That is why the interpreters are denied — `python`, `perl`, `ruby`, `node`,
-`osascript`, and nested `sh`/`bash`/`zsh`. An agent that can run any of them
-can do everything they can do, and the allow-list stops meaning what it says.
-This is the exact finding Qodo raised against the reference implementation of
-this pattern, whose first tool list permitted any `git` or `python` command.
+Three of those denials exist because a review of this runner found the hole:
 
-Bare `flutter` and `dart` are denied too, which turns a house rule into a
+- **No `gh` at all.** `gh api repos/<slug>:*` reads as a read-only escape
+  hatch and is not: the same command reaches every write endpoint on the
+  repository — including merge — with the runner's own credentials.
+- **No `git diff`, `git show` or `git log`.** All three accept `--output=`,
+  which writes a file *through git* and walks straight past a path-based
+  `Edit()` or `Write()` denial. `git diff --output=.github/workflows/x.yml` is
+  a write to a protected path that no path rule sees.
+- **`npm --prefix functions` pinned to three exact scripts.** A wildcard there
+  also permits `npm run deploy`, which is `firebase deploy` wearing a different
+  hat, and `Bash(firebase:*)` never matches it.
+
+The interpreters are denied for the same reason — `python`, `perl`, `ruby`,
+`node`, `osascript`, and nested `sh`/`bash`/`zsh`. An agent that can run any of
+them can do everything they can do, and the allow list stops meaning what it
+says. Bare `flutter` and `dart` are denied too, which turns a house rule into a
 mechanism: `AGENTS.md` requires the `fvm` prefix so the pinned SDK is the one
 that runs, and here an unprefixed call is refused rather than silently
 resolving to whichever of the four installed SDKs is first on `PATH`.
@@ -147,9 +180,14 @@ pull request that hides it is worse than one that does not exist.
 ## Running it
 
 ```bash
-factory/agent-run.sh --dry-run   # preflight, ticket pick, implement, checks — pushes nothing
+factory/agent-run.sh --dry-run   # preflight, queue and ticket gate only
 factory/agent-run.sh             # one real pass
 ```
+
+`--dry-run` stops before the first thing that changes the machine or the
+repository: it creates no worktree, starts no agent and performs no GitHub
+write. It reads the queue, applies the acceptance-criteria gate, and prints
+what it would have claimed.
 
 On the schedule:
 
