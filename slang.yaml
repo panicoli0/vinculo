@@ -8,3 +8,9 @@ translate_var: t
 locale_handling: true
 flutter_integration: true
 lazy: false
+# Sin el sello de hora en la cabecera generada. Con él, `translations.g.dart`
+# cambia en cada corrida de slang aunque las traducciones no se toquen, y eso
+# vuelve inverificable la regla 4 de AGENTS.md: "los generados tienen que
+# coincidir con su fuente en el mismo commit" no se puede comprobar
+# regenerando si regenerar siempre produce un diff.
+timestamp: false

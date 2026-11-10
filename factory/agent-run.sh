@@ -109,36 +109,55 @@ DRY_RUN=0
 # stops meaning what it says. Every prefix pattern ends in `:*` — a wildcard
 # earlier would also match options inserted at that position.
 # ---------------------------------------------------------------------------
-ALLOWED_TOOLS="Read Glob Grep Edit Write TodoWrite \
-Bash(fvm flutter analyze) \
-Bash(fvm flutter pub get) \
-Bash(fvm dart run slang) \
-Bash(fvm dart run build_runner build) \
-Bash(fvm dart format .) \
-Bash(git status) \
-Bash(git add:*) \
-Bash(git commit:*) \
-Bash(npm --prefix functions ci) \
-Bash(npm --prefix functions run build) \
-Bash(npm --prefix functions run lint)"
+# These are **arrays**, and the difference is not style. A pattern containing a
+# space has to reach the CLI as one argument. Held in a string and expanded
+# unquoted, `Bash(npm --prefix functions ci)` splits into four arguments and
+# the CLI reads `--prefix` as one of its own options: the run died in one
+# second with `error: unknown option '--prefix'`. The patterns that do not
+# begin with a dash fail more quietly — `Bash(fvm flutter analyze)` arrives as
+# three meaningless fragments and simply never matches anything, which is an
+# allow list that silently allows nothing.
+ALLOWED_TOOLS=(
+  Read Glob Grep Edit Write TodoWrite
+  "Bash(fvm flutter analyze)"
+  "Bash(fvm flutter pub get)"
+  "Bash(fvm dart run slang)"
+  "Bash(fvm dart run build_runner build)"
+  "Bash(fvm dart format .)"
+  "Bash(git status)"
+  "Bash(git add:*)"
+  "Bash(git commit:*)"
+  "Bash(npm --prefix functions ci)"
+  "Bash(npm --prefix functions run build)"
+  "Bash(npm --prefix functions run lint)"
+)
 
-DENIED_TOOLS="Bash(gh:*) \
-Bash(git push:*) Bash(git merge:*) Bash(git rebase:*) Bash(git reset:*) \
-Bash(git checkout:*) Bash(git switch:*) Bash(git branch:*) Bash(git worktree:*) \
-Bash(git remote:*) Bash(git clean:*) Bash(git config:*) Bash(git apply:*) \
-Bash(git diff:*) Bash(git show:*) Bash(git log:*) Bash(git format-patch:*) \
-Bash(firebase:*) Bash(gcloud:*) Bash(flutterfire:*) Bash(gsutil:*) Bash(aws:*) \
-Bash(rm:*) Bash(mv:*) Bash(cp:*) Bash(chmod:*) Bash(chown:*) Bash(ln:*) \
-Bash(sudo:*) Bash(su:*) Bash(curl:*) Bash(wget:*) Bash(ssh:*) Bash(scp:*) Bash(nc:*) \
-Bash(launchctl:*) Bash(crontab:*) Bash(defaults:*) Bash(security:*) Bash(open:*) \
-Bash(osascript:*) Bash(env:*) Bash(xargs:*) Bash(eval:*) Bash(exec:*) Bash(tee:*) \
-Bash(python:*) Bash(python3:*) Bash(perl:*) Bash(ruby:*) Bash(node:*) Bash(npx:*) \
-Bash(sh:*) Bash(bash:*) Bash(zsh:*) Bash(dart:*) Bash(flutter:*) \
-WebFetch WebSearch \
-Edit(assets/content/decks/**) Write(assets/content/decks/**) \
-Edit(factory/**) Write(factory/**) \
-Edit(docs/**) Write(docs/**) Edit(.qodo/**) Write(.qodo/**) \
-Edit(.github/**) Write(.github/**) Edit(.gitignore) Write(.gitignore)"
+DENIED_TOOLS=(
+  "Bash(gh:*)"
+  "Bash(git push:*)" "Bash(git merge:*)" "Bash(git rebase:*)" "Bash(git reset:*)"
+  "Bash(git checkout:*)" "Bash(git switch:*)" "Bash(git branch:*)" "Bash(git worktree:*)"
+  "Bash(git remote:*)" "Bash(git clean:*)" "Bash(git config:*)" "Bash(git apply:*)"
+  "Bash(git diff:*)" "Bash(git show:*)" "Bash(git log:*)" "Bash(git format-patch:*)"
+  "Bash(firebase:*)" "Bash(gcloud:*)" "Bash(flutterfire:*)" "Bash(gsutil:*)" "Bash(aws:*)"
+  "Bash(rm:*)" "Bash(mv:*)" "Bash(cp:*)" "Bash(chmod:*)" "Bash(chown:*)" "Bash(ln:*)"
+  "Bash(sudo:*)" "Bash(su:*)" "Bash(curl:*)" "Bash(wget:*)" "Bash(ssh:*)" "Bash(scp:*)" "Bash(nc:*)"
+  "Bash(launchctl:*)" "Bash(crontab:*)" "Bash(defaults:*)" "Bash(security:*)" "Bash(open:*)"
+  "Bash(osascript:*)" "Bash(env:*)" "Bash(xargs:*)" "Bash(eval:*)" "Bash(exec:*)" "Bash(tee:*)"
+  "Bash(python:*)" "Bash(python3:*)" "Bash(perl:*)" "Bash(ruby:*)" "Bash(node:*)" "Bash(npx:*)"
+  "Bash(sh:*)" "Bash(bash:*)" "Bash(zsh:*)" "Bash(dart:*)" "Bash(flutter:*)"
+  WebFetch WebSearch
+  # Paths are denied with Edit() only. A `Write(path)` rule is silently inert —
+  # the CLI says so on every run: "Write(docs/**) is not matched by file
+  # permission checks — only Edit(path) rules are." An `Edit()` rule covers all
+  # file-editing tools, Write included, so the pairs these used to come in were
+  # half decoration.
+  "Edit(assets/content/decks/**)"
+  "Edit(factory/**)"
+  "Edit(docs/**)"
+  "Edit(.qodo/**)"
+  "Edit(.github/**)"
+  "Edit(.gitignore)"
+)
 
 # ---------------------------------------------------------------------------
 # Logging. Two destinations: a run log on disk for the human, and a timeline
@@ -332,16 +351,15 @@ run_agent() {
 
   run_claude() {
     cd "$worktree" || exit 127
-    # Globbing is off while the two tool lists are word-split: patterns like
-    # `Edit(docs/**)` must reach the CLI intact, not expand against the tree.
-    set -f
-    # shellcheck disable=SC2086
+    # Quoted array expansion: one pattern per argument, no word splitting and
+    # no globbing, so `Bash(fvm flutter analyze)` and `Edit(docs/**)` both
+    # reach the CLI exactly as written.
     claude -p "$(cat "$prompt_file")" \
       --permission-mode acceptEdits \
       --permission-prompts none \
       --output-format text \
-      --allowedTools $ALLOWED_TOOLS \
-      --disallowedTools $DENIED_TOOLS
+      --allowedTools "${ALLOWED_TOOLS[@]}" \
+      --disallowedTools "${DENIED_TOOLS[@]}"
   }
 
   with_timeout "$AGENT_TIMEOUT_SECONDS" "agent $label" run_claude >"$out" 2>&1
@@ -374,7 +392,10 @@ read_verdict() {
 run_checks() {
   local worktree="$1"
   local out="$RUN_LOG_DIR/$RUN_ID.checks.$(date -u +%H%M%S).log"
-  local analyze_out="$out.analyze"
+  # `.analyze.log`, not `.log.analyze`: the repository ignores `*.log`, and a
+  # file whose name ends otherwise turns `factory/runs/` into untracked clutter
+  # that eventually gets committed by someone's `git add -A`.
+  local analyze_out="${out%.log}.analyze.log"
   CHECK_FAILURE=""
 
   cd "$worktree" || { CHECK_FAILURE="worktree is gone"; return 1; }
