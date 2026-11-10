@@ -750,9 +750,15 @@ review_pass() {
   local head_time qodo_time
   head_time="$(TZ=UTC0 git -C "$worktree" show -s \
                  --date=format-local:'%Y-%m-%dT%H:%M:%SZ' --format=%cd HEAD)"
+  # Anchored regex, not `startswith`: the reviewer does not always emit the
+  # same leading whitespace. On PR #9 the body began with `<h3>`; on PR #10 it
+  # began with a space and then `<h3>`, `startswith` missed it, and the pass
+  # reported WAITING_QODO against a review that had been sitting there for
+  # sixteen minutes. Left alone it would have declared the pull request blocked
+  # at the 45-minute mark and blamed the reviewer.
   qodo_time="$(gh api "repos/$REPO_SLUG/issues/$pr/comments" --paginate \
     --jq '[.[] | select(.user.login == "qodo-code-review[bot]")
-               | select(.body | startswith("<h3>Code Review by Qodo"))]
+               | select(.body | test("^\\s*<h3>Code Review by Qodo"))]
           | max_by(.updated_at) | .updated_at // empty' 2>/dev/null)"
 
   if [ -z "$qodo_time" ] || [[ "$qodo_time" < "$head_time" ]]; then
@@ -779,7 +785,7 @@ review_pass() {
   mkdir -p "$worktree/$IO_DIR"
   gh api "repos/$REPO_SLUG/issues/$pr/comments" --paginate \
     --jq '[.[] | select(.user.login == "qodo-code-review[bot]")
-               | select(.body | startswith("<h3>Code Review by Qodo"))]
+               | select(.body | test("^\\s*<h3>Code Review by Qodo"))]
           | max_by(.updated_at) | .body' >"$worktree/$IO_DIR/review.html" 2>/dev/null
   git -C "$worktree" diff "$MAIN_SHA...HEAD" >"$worktree/$IO_DIR/diff.patch" 2>/dev/null
   gh pr view "$pr" --repo "$REPO_SLUG" --json body --jq .body >"$worktree/$IO_DIR/pr-body.md" 2>/dev/null
