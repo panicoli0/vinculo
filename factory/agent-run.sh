@@ -146,6 +146,25 @@ DENIED_TOOLS=(
   "Bash(python:*)" "Bash(python3:*)" "Bash(perl:*)" "Bash(ruby:*)" "Bash(node:*)" "Bash(npx:*)"
   "Bash(sh:*)" "Bash(bash:*)" "Bash(zsh:*)" "Bash(dart:*)" "Bash(flutter:*)"
   WebFetch WebSearch
+
+  # Keep the agent inside its own worktree.
+  #
+  # Without this it reads the human's checkout next door — a different branch,
+  # with uncommitted work in it. It happened: asked to deliver ticket #7, the
+  # agent hit the slang timestamp problem, read `slang.yaml` out of the main
+  # checkout (which was sitting on the factory branch, where that fix already
+  # existed) and committed a byte-identical copy, Spanish comment and all. The
+  # fix was right and the provenance was a fiction: a delivery that depends on
+  # whatever the human happens to have checked out is not reproducible.
+  #
+  # The leading `//` is what makes these absolute paths rather than
+  # worktree-relative ones. Measured: `Read(/abs/**)` is NOT enforced and
+  # `Read(//abs/**)` is. `$REPO_DIR/**` does not match `vinculo-factory/`,
+  # which is a sibling directory, so the worktree itself stays readable.
+  "Read(//$REPO_DIR/**)" "Edit(//$REPO_DIR/**)"
+  "Read(//$HOME/.ssh/**)" "Read(//$HOME/.aws/**)" "Read(//$HOME/.gnupg/**)"
+  "Read(//$HOME/.claude/**)" "Read(//$HOME/.config/**)"
+
   # Paths are denied with Edit() only. A `Write(path)` rule is silently inert —
   # the CLI says so on every run: "Write(docs/**) is not matched by file
   # permission checks — only Edit(path) rules are." An `Edit()` rule covers all
@@ -590,6 +609,16 @@ It has no \`## Acceptance criteria\` section, and the run is required to check t
 
   # The agent has no `gh`. Everything it needs about the ticket arrives as a file.
   printf '# Ticket #%s — %s\n\n%s\n' "$issue" "$title" "$body" >"$worktree/$IO_DIR/ticket.md"
+
+  # HANDOFF carries the open product decisions, and an agent that does not read
+  # it will settle one by accident — it nearly did on this very ticket. It
+  # lives under `docs/`, which is gitignored, so a clean worktree does not have
+  # it. Copy it in rather than leave the agent to go looking for it in the
+  # human's checkout, which is the read this runner now denies.
+  if [ -f "$REPO_DIR/docs/plans/HANDOFF.md" ]; then
+    cp "$REPO_DIR/docs/plans/HANDOFF.md" "$worktree/$IO_DIR/handoff.md"
+    event "handed over docs/plans/HANDOFF.md (open decisions)"
+  fi
 
   # Seed the local-only files and warm pub, so the agent's first `analyze` is
   # meaningful. Bounded like everything else: this is the step whose unbounded
