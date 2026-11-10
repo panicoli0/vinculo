@@ -59,6 +59,8 @@
     "subtitle": "This is the space you will share. You can change it later.",
     "nameLabel": "Family name",
     "nameHint": "The Garcías",
+    "nameRequired": "Enter a family name to continue.",
+    "nameTooLong": "That name is too long to save. Try a shorter one.",
     "confirm": "Create"
   },
   "screens": {

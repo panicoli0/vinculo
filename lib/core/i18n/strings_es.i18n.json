@@ -59,6 +59,8 @@
     "subtitle": "Es el espacio que van a compartir. Puedes cambiarlo después.",
     "nameLabel": "Nombre de la familia",
     "nameHint": "Familia García",
+    "nameRequired": "Escribe el nombre de la familia para continuar.",
+    "nameTooLong": "Ese nombre es demasiado largo para guardarlo. Prueba con uno más corto.",
     "confirm": "Crear"
   },
   "screens": {
