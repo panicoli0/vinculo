@@ -640,8 +640,12 @@ review_pass() {
   # review itself. Only the last carries findings, so it is selected by its
   # heading — on an earlier pull request the newest bot comment was a one-line
   # link, and taking it would have had the agent answer a review it never read.
-  local head_time qodo_time qodo_body
-  head_time="$(git -C "$worktree" show -s --format=%cI HEAD | sed 's/+00:00/Z/')"
+  # Both timestamps must be UTC or the lexical comparison below is nonsense.
+  # `%cI` renders the committer's local offset (`…+01:00`), which sorts after
+  # a `…Z` string of the same instant and would make a fresh review look stale.
+  local head_time qodo_time
+  head_time="$(TZ=UTC0 git -C "$worktree" show -s \
+                 --date=format-local:'%Y-%m-%dT%H:%M:%SZ' --format=%cd HEAD)"
   qodo_time="$(gh api "repos/$REPO_SLUG/issues/$pr/comments" --paginate \
     --jq '[.[] | select(.user.login == "qodo-code-review[bot]")
                | select(.body | startswith("<h3>Code Review by Qodo"))]
@@ -649,7 +653,9 @@ review_pass() {
 
   if [ -z "$qodo_time" ] || [[ "$qodo_time" < "$head_time" ]]; then
     local pushed_ago
-    pushed_ago=$(( ( $(date +%s) - $(date -j -f %Y-%m-%dT%H:%M:%SZ "$head_time" +%s 2>/dev/null || echo 0) ) / 60 ))
+    # BSD `date -j -f` reads the string in the local zone, so it needs TZ=UTC0
+    # to parse a `…Z` timestamp as the instant it actually names.
+    pushed_ago=$(( ( $(date +%s) - $(TZ=UTC0 date -j -f '%Y-%m-%dT%H:%M:%SZ' "$head_time" +%s 2>/dev/null || echo 0) ) / 60 ))
     if [ "$pushed_ago" -gt "$QODO_WAIT_MINUTES" ]; then
       finish_blocked "$issue" "$pr" "no Qodo review of the current head commit after ${pushed_ago} minutes (limit ${QODO_WAIT_MINUTES}). The reviewer may be down, or it may be ignoring this pull request."
     fi
