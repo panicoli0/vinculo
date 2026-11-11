@@ -397,6 +397,16 @@ read_verdict() {
   fi
 }
 
+# The playbooks say the **first word** of the verdict is what gets read by
+# machine, and they mean it: an agent that writes
+# `NO_FINDINGS — the review of head abc123 is empty` has obeyed the contract.
+# Matching the whole line against a fixed set does not implement that contract,
+# it implements a stricter one nobody was told about — and it cost a correct
+# run, which ended as "the agent returned no usable verdict" on a verdict that
+# was perfectly usable.
+verdict_word()   { printf '%s' "$1" | awk '{print $1}' | tr -d ':—'; }
+verdict_reason() { printf '%s' "$1" | sed -E 's/^[A-Za-z_]+[[:space:]]*[:—-]*[[:space:]]*//'; }
+
 # ---------------------------------------------------------------------------
 # The checks. This project has no tests by an explicit product decision, so
 # "checks" means exactly what AGENTS.md calls Done minus the two halves a
@@ -644,11 +654,9 @@ It has no \`## Acceptance criteria\` section, and the run is required to check t
     verdict="$(read_verdict "$worktree")"
     event "agent verdict: $verdict"
 
-    case "$verdict" in
-      # `BLOCKED: reason` — strip the label and the separator, not just the
-      # label, or the message reads "stopped on its own: : reason".
-      BLOCKED*) finish_blocked "$issue" "" "the agent stopped on its own — ${verdict#BLOCKED: }" ;;
-    esac
+    if [ "$(verdict_word "$verdict")" = "BLOCKED" ]; then
+      finish_blocked "$issue" "" "the agent stopped on its own — $(verdict_reason "$verdict")"
+    fi
 
     if run_checks "$worktree"; then break; fi
 
@@ -804,11 +812,15 @@ review_pass() {
   local new_head; new_head="$(git -C "$worktree" rev-parse HEAD)"
   local changed=0; [ "$new_head" != "$head_sha" ] && changed=1
 
-  case "$verdict" in
-    BLOCKED*) finish_blocked "$issue" "$pr" "the agent stopped on its own — ${verdict#BLOCKED: }" ;;
+  # The first word is the verdict; anything after it is the agent explaining
+  # itself, which is welcome and must not change the parse.
+  local word; word="$(verdict_word "$verdict")"
+  case "$word" in
+    BLOCKED) finish_blocked "$issue" "$pr" "the agent stopped on its own — $(verdict_reason "$verdict")" ;;
     NO_FINDINGS|REJECTED_ALL|FIXED) : ;;
     *) finish_blocked "$issue" "$pr" "the agent returned no usable verdict (got '$verdict')" ;;
   esac
+  verdict="$word"
 
   # A FIXED that committed nothing is not a fix. Earlier this spent a round and
   # left the same review eligible forever.
