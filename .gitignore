@@ -74,3 +74,6 @@ BRIEF.md
 # Entorno local del agente
 .claude/
 .mcp.json
+
+# Bitácoras del runner de la fábrica: locales, nunca se publican
+factory/runs/
