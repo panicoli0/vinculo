@@ -116,13 +116,25 @@ service cloud.firestore {
           'name', 'ownerUid', 'memberUids', 'plan', 'createdAt', 'analyticsRef'
         ])
         && request.resource.data.name is string
+        // Cota de sanidad de almacenamiento en unidades UTF-16, NO el límite de
+        // producto. El límite real son 40 grafemas y lo aplica
+        // `isValidFamilyName` en el cliente: `size()` cuenta unidades UTF-16 y
+        // las reglas no saben contar grafemas, así que un `<= 40` acá
+        // rechazaría nombres con emoji que el campo de texto sí acepta.
+        //
+        // 640, la misma cota que `displayName` y con la misma justificación: es
+        // de almacenamiento, arbitraria y holgada, NO un múltiplo seguro de 40
+        // grafemas — las marcas combinantes dejan las unidades UTF-16 por
+        // grafema sin cota superior. Con emoji RGI la guarda es inalcanzable
+        // (peor secuencia medida 15 unidades: 40 grafemas = 600 < 640; la
+        // familia ZWJ, 11: 440), pero Zalgo la pasa sin esfuerzo, y por eso el
+        // cliente verifica la cota UTF-16 en vez de confiar en el formatter.
+        //
+        // Mide el valor CRUDO, sin `trim()`: lo que se guarda es lo que hay que
+        // acotar, y `trim()` en las reglas no coincide con el de Dart. El nombre
+        // de solo espacios lo rechaza el cliente, que trimea antes de medir.
         && request.resource.data.name.size() >= 1
-        // Cota de sanidad, NO el límite de producto. El límite real son 40
-        // grafemas y lo aplica `isValidFamilyName` en el cliente: las reglas
-        // no saben contar grafemas, y un `<= 40` acá rechazaría nombres con
-        // emoji que el campo de texto sí acepta.
-        // TODO(#7): esta cota no cubre 40 grafemas (medido: 440 unidades UTF-16).
-        && request.resource.data.name.size() <= 160
+        && request.resource.data.name.size() <= 640
         && getAfter(
              /databases/$(database)/documents/families/$(fid)/members/$(request.auth.uid)
            ).data.role == 'owner';
@@ -134,9 +146,10 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data)
              .affectedKeys().hasOnly(['name'])
         && request.resource.data.name is string
+        // Misma cota de sanidad UTF-16 sobre el valor crudo que el `create` de
+        // arriba, con la misma justificación.
         && request.resource.data.name.size() >= 1
-        // TODO(#7): esta cota no cubre 40 grafemas (medido: 440 unidades UTF-16).
-        && request.resource.data.name.size() <= 160;
+        && request.resource.data.name.size() <= 640;
 
       // Solo la Function de borrado en cascada.
       allow delete: if false;

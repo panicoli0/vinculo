@@ -157,6 +157,8 @@ class _Translations$createFamily$en extends Translations$createFamily$es {
 	@override String get subtitle => 'This is the space you will share. You can change it later.';
 	@override String get nameLabel => 'Family name';
 	@override String get nameHint => 'The Garcías';
+	@override String get nameRequired => 'Enter a family name to continue.';
+	@override String get nameTooLong => 'That name is too long to save. Try a shorter one.';
 	@override String get confirm => 'Create';
 }
 
@@ -429,6 +431,8 @@ extension on TranslationsEn {
 			'createFamily.subtitle' => 'This is the space you will share. You can change it later.',
 			'createFamily.nameLabel' => 'Family name',
 			'createFamily.nameHint' => 'The Garcías',
+			'createFamily.nameRequired' => 'Enter a family name to continue.',
+			'createFamily.nameTooLong' => 'That name is too long to save. Try a shorter one.',
 			'createFamily.confirm' => 'Create',
 			'screens.signIn.title' => 'Sign in',
 			'screens.invite.title' => 'Invitation',

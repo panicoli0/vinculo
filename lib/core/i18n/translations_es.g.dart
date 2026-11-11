@@ -231,6 +231,12 @@ class Translations$createFamily$es {
 	/// es: 'Familia García'
 	String get nameHint => 'Familia García';
 
+	/// es: 'Escribe el nombre de la familia para continuar.'
+	String get nameRequired => 'Escribe el nombre de la familia para continuar.';
+
+	/// es: 'Ese nombre es demasiado largo para guardarlo. Prueba con uno más corto.'
+	String get nameTooLong => 'Ese nombre es demasiado largo para guardarlo. Prueba con uno más corto.';
+
 	/// es: 'Crear'
 	String get confirm => 'Crear';
 }
@@ -550,6 +556,8 @@ extension on Translations {
 			'createFamily.subtitle' => 'Es el espacio que van a compartir. Puedes cambiarlo después.',
 			'createFamily.nameLabel' => 'Nombre de la familia',
 			'createFamily.nameHint' => 'Familia García',
+			'createFamily.nameRequired' => 'Escribe el nombre de la familia para continuar.',
+			'createFamily.nameTooLong' => 'Ese nombre es demasiado largo para guardarlo. Prueba con uno más corto.',
 			'createFamily.confirm' => 'Crear',
 			'screens.signIn.title' => 'Iniciar sesión',
 			'screens.invite.title' => 'Invitación',

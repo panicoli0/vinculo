@@ -42,6 +42,25 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
 
   bool get _canContinue => isValidFamilyName(_nameController.text);
 
+  /// Why the name field blocks "create", or null while it does not.
+  ///
+  /// Sin este mensaje, los dos casos dejan el botón "Crear" apagado y nada en
+  /// pantalla que lo explique. El de solo espacios es además el único que la
+  /// regla de Firestore delega enteramente al cliente: la cota del servidor
+  /// mide el valor crudo y no trimea. El campo vacío no muestra error: es el
+  /// estado inicial y el botón apagado ya alcanza.
+  String? _nameError(Translations t) {
+    final String raw = _nameController.text;
+    final String trimmed = raw.trim();
+    if (raw.isNotEmpty && trimmed.isEmpty) {
+      return t.createFamily.nameRequired;
+    }
+    if (trimmed.isNotEmpty && !isValidFamilyName(raw)) {
+      return t.createFamily.nameTooLong;
+    }
+    return null;
+  }
+
   Future<void> _create() async {
     final String name = _nameController.text.trim();
     final String? uid = ref.read(currentUidProvider);
@@ -123,6 +142,7 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
                     decoration: InputDecoration(
                       labelText: t.createFamily.nameLabel,
                       hintText: t.createFamily.nameHint,
+                      errorText: _nameError(t),
                     ),
                     onChanged: (_) => setState(() {}),
                     onSubmitted: (_) {
