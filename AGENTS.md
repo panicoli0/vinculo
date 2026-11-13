@@ -136,6 +136,52 @@ grandmother reading the interface in Spanish, asking her grandchild questions in
 English, addressing her brother as *tú* and her father-in-law as *usted*. Coupling the
 axes makes the bilingual family, which is the whole point, unusable.
 
+*There is no rule 6 on purpose: the number is reserved for `questionKey`, which becomes
+rule 6 when phase 3 lands (see Project notes).*
+
+### 7. A text limit is one number, on one value, in one unit per layer
+
+**Where:** every length-bounded string a person types — today the family name
+(`families.name`) and the display name (`users/{uid}` and
+`families/{fid}/members/{uid}`) — at each place it is checked or written: the field's
+`LengthLimitingTextInputFormatter` in `presentation/`, its policy in
+`features/*/domain/` (`family_name_policy.dart`, `display_name_policy.dart`), the
+repository methods that write it in **both** implementations in `features/*/data/`
+(Firestore and `InMemory*`), and every `size()` bound on it in `firestore.rules`.
+**Rule:** the policy in `domain/` is the single definition of the limit, as two named
+constants in two named units: a product limit in grapheme clusters (`k…MaxLength`,
+counted with `.characters.length`) and a storage bound in UTF-16 code units
+(`k…MaxUtf16Units`, counted with `String.length`, the unit `size()` counts in the
+rules). A count compared against the other unit's constant is a violation. The policy
+checks both, so nothing it accepts can be rejected by a rule; the converse is expected,
+because the rules cannot count graphemes and the storage bound is the looser of the
+two. The storage bound is the literal in every `size()` that mirrors it, each such bound
+has a comment naming the policy function it mirrors (or pointing at the bound that
+does), and it admits a name made entirely of emoji: at least 15 UTF-16 units per
+grapheme — a kiss with two skin tones, the longest RGI emoji sequence measured — so
+640 ≥ 40 × 15 today. The formatter takes the grapheme constant and nothing else;
+combining marks can still carry a value past the UTF-16 bound inside the grapheme
+limit, so a non-empty field whose value the policy rejects says why on screen, and a
+disabled button never stands alone. The value written is the value measured: the policy
+measures the trimmed string, the caller passes that trimmed string and never the raw
+field text, and the repository writes its argument verbatim. Both implementations check
+that argument before writing — the policy plus its raw `String.length` against the
+storage bound, the same expression in each — so the `InMemory*` double never stores
+what the Firestore rule would refuse. Changing either number changes the policy, the
+formatter and every mirroring `size()` in the same pull request. Rule 3 decides which
+keys a write carries; this rule decides how a value in it is measured and which form of
+it is sent. A blank name is rejected by the client only; whether the rules should reject
+it too is open decision #17 in HANDOFF §4.
+**Why:** each layer measuring length its own way has failed three times in two pull
+requests, every time as a name a person could type but not save. The formatter counted
+graphemes and the policy UTF-16 units, so an emoji family name left Create disabled
+with no explanation (PR #1). The policy then moved to graphemes while the rule stayed
+at 160 units, so a 40-emoji family name the app accepted was rejected by Firestore
+(PR #8): the first fix landed in one layer and left the next behind. A display name was
+validated trimmed and written raw, so Firestore rejected what the policy passed while
+the in-memory double stored it — and `USE_FIREBASE=false` demonstrated behaviour the
+real app does not have (PR #8).
+
 ## Project notes
 
 - **`questionKey` is the anti-repetition key.** `card:<cardId>` for curated cards **and
