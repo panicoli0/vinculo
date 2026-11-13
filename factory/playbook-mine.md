@@ -66,7 +66,7 @@ A JSON array. No prose around it, no markdown fence, nothing else in the file.
     "covered_by": "4. Layers do not leak",
     "proposed_rule": "The rule text, in this project's Where / Rule / Why shape. Say what to DO, not only what to avoid. If it refines an existing rule, write the replacement for that rule, whole.",
     "findings": [
-      { "pr": 8, "title": "exact title as it appears", "path": "the file path", "what": "one clause: what was actually wrong in THIS instance" }
+      { "id": 4493575688, "pr": 8, "title": "exact title as it appears", "path": "the file path", "what": "one clause: what was actually wrong in THIS instance" }
     ]
   }
 ]
@@ -74,9 +74,17 @@ A JSON array. No prose around it, no markdown fence, nothing else in the file.
 
 Rules for the fields:
 
-- `pr` is a **number**, taken from the `<!-- … pr=N -->` marker. The script
-  counts distinct pull requests from these, so a wrong one corrupts the
-  threshold.
+- **`id` is required and must be copied exactly** from that finding's
+  `<!-- id=… pr=… -->` marker, as a number. It is how the script checks that
+  every finding you cite is a real one: an id it cannot find in the corpus
+  stops the run. It is also how it counts — the pull request a finding belongs
+  to is looked up by id, not read from your `pr`.
+- `pr` is a **number** from the same marker. Fill it in honestly; it is used
+  for display, and a mismatch with the id's real pull request is a sign the
+  grouping was careless.
+- Never list the same `id` twice in one group. The script de-duplicates before
+  counting, so a repeat cannot inflate a threshold — it just makes the group's
+  evidence read as larger than it is.
 - `covered_by` is `""` when nothing covers it.
 - `findings` lists **every** finding in the group, including ones from the same
   pull request.

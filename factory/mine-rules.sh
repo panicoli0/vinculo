@@ -66,14 +66,22 @@ RUN_LOG="$RUN_LOG_DIR/$RUN_ID.mine.log"
 log() { printf '%s  %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" | tee -a "$RUN_LOG"; }
 status() { printf '%s\n' "$*" | tee -a "$RUN_LOG"; }
 
-# The miner reads and writes files and nothing else. It has no shell at all:
-# the corpus is collected before it starts and the issues are opened after it
-# stops, so there is no command for it to need.
-ALLOWED_TOOLS=(Read Write Glob Grep)
+# The miner opens two files by name and writes one. That is the whole job, so
+# that is the whole allow list.
+#
+# `Grep` and `Glob` used to be here, and they were the hole: a path denial is
+# written as `Read(…)`, and `Read(…)` does not constrain a search. The corpus is
+# review text somebody else wrote; an instruction buried in a finding that got
+# the agent to grep a key out of a local file would have had a willing `Write`
+# to put it into a group, and `propose()` posts groups to a public issue.
+# Searching is not needed to open two files by name, so it is gone.
+ALLOWED_TOOLS=(Read Write)
 DENIED_TOOLS=(
-  Bash WebFetch WebSearch TodoWrite
-  "Edit(//$REPO_DIR/**)" "Read(//$HOME/.ssh/**)" "Read(//$HOME/.aws/**)"
-  "Read(//$HOME/.claude/**)" "Read(//$HOME/.config/**)" "Read(//$HOME/.gnupg/**)"
+  Bash Grep Glob WebFetch WebSearch TodoWrite Task NotebookEdit
+  "Edit(//$REPO_DIR/**)"
+  "Read(//$REPO_DIR/**)"
+  "Read(//$HOME/.ssh/**)" "Read(//$HOME/.aws/**)" "Read(//$HOME/.gnupg/**)"
+  "Read(//$HOME/.claude/**)" "Read(//$HOME/.config/**)" "Read(//$HOME/Library/**)"
 )
 
 # ---------------------------------------------------------------------------
@@ -85,20 +93,45 @@ DENIED_TOOLS=(
 # is the only reason the history is still minable at all.
 # ---------------------------------------------------------------------------
 collect() {
-  local corpus="$WORK/findings.md" prs n count total=0 tickets=0
-  : >"$corpus"
-  prs="$(gh pr list --repo "$REPO_SLUG" --state all --limit 200 --json number --jq '.[].number' | sort -n)"
+  local corpus="$WORK/findings.md" index="$WORK/findings.json" raw="$WORK/raw.ndjson"
+  local prs n count total=0 tickets=0
+  : >"$corpus"; : >"$index"
+
+  # Every pull request, not the newest N. `gh pr list --limit 200` silently
+  # stops at its cap, and the findings on the pull requests it drops would
+  # leave the corpus — and the threshold — quietly wrong.
+  prs="$(gh api "repos/$REPO_SLUG/pulls?state=all" --paginate --jq '.[].number' 2>/dev/null | sort -n)"
+  [ -n "$prs" ] || { status "FAILED: could not list the pull requests"; exit 1; }
+
   for n in $prs; do
-    count="$(gh api "repos/$REPO_SLUG/pulls/$n/comments" --paginate \
-      --jq "[.[] | select(.user.login == \"$REVIEWER\")] | length" 2>/dev/null || echo 0)"
+    # One request per pull request, straight to newline-delimited JSON.
+    #
+    # The previous version asked for `[…] | length` with `--paginate`, which
+    # runs the filter **once per page** and prints a count per page: a review
+    # spread over two pages came back as "30\n5" and every later test on it was
+    # nonsense. Measured on PR #9 at `per_page=5`: `5 5 5 2`. Emitting one
+    # object per line composes across pages; `jq -s` turns it into one array.
+    if ! gh api "repos/$REPO_SLUG/pulls/$n/comments" --paginate \
+         --jq ".[] | select(.user.login == \"$REVIEWER\")
+               | {id, pr: $n, path, body}" >"$raw" 2>/dev/null
+    then
+      # A partial corpus produces a confident threshold decision over findings
+      # nobody knows are missing. Stopping is the only honest answer.
+      status "FAILED: could not read the review comments on PR #$n"
+      exit 1
+    fi
+    count="$(jq -s 'length' <"$raw" 2>/dev/null)"
     [ "${count:-0}" -eq 0 ] && continue
+
     tickets=$((tickets + 1)); total=$((total + count))
     printf '\n\n## Pull request #%s — %s finding(s)\n' "$n" "$count" >>"$corpus"
-    gh api "repos/$REPO_SLUG/pulls/$n/comments" --paginate \
-      --jq ".[] | select(.user.login == \"$REVIEWER\")
-            | \"\n### [PR#$n] \(.path)\n<!-- id=\(.id) pr=$n -->\n\(.body)\n\"" >>"$corpus" 2>/dev/null
+    jq -r '"\n### [PR#\(.pr)] \(.path)\n<!-- id=\(.id) pr=\(.pr) -->\n\(.body)\n"' <"$raw" >>"$corpus"
+    # The index is what the model's answer gets checked against later.
+    jq -c '{id, pr, path}' <"$raw" >>"$index"
     log "collected $count finding(s) from PR #$n"
   done
+  rm -f "$raw"
+
   # The HTML is the reviewer's badge markup; it carries no information the
   # model needs and a lot of tokens it would pay for.
   sed -i '' -E 's/<img[^>]*>//g; s/<\/?(h3|b|i|pre|code|details|summary|table|tr|td|th|br|p|div|span|a)[^>]*>//g' "$corpus"
@@ -142,13 +175,53 @@ group() {
 # findings themselves rather than taken from a field the model filled in.
 # ---------------------------------------------------------------------------
 judge() {
-  jq --argjson minf "$MIN_FINDINGS" --argjson mint "$MIN_TICKETS" '
-    [ .[]
-      | . + { finding_count: (.findings | length),
-              ticket_count:  (.findings | map(.pr) | unique | length) }
-      | . + { fires: (.finding_count >= $minf and .ticket_count >= $mint) }
-    ] | sort_by(-.finding_count)
-  ' "$WORK/groups.json" >"$WORK/judged.json"
+  local index="$WORK/findings.json"
+  [ -s "$index" ] || { status "FAILED: no findings index at $index; run without --reuse"; exit 1; }
+
+  # Shape first. Valid JSON is not a valid answer: an array of the wrong shape
+  # yields zero qualifying groups and reports "no patterns", which reads
+  # exactly like a clean result.
+  if ! jq -e 'type == "array" and length > 0 and all(
+        (type == "object")
+        and (.name? | type == "string") and (.statement? | type == "string")
+        and (.proposed_rule? | type == "string")
+        and (.findings? | type == "array") and (.findings | length > 0)
+        and (.findings | all(.id? != null)))' "$WORK/groups.json" >/dev/null 2>&1
+  then
+    status "FAILED: groups.json is valid JSON of the wrong shape — every group needs name, statement, proposed_rule and a non-empty findings array whose entries carry an id"
+    exit 1
+  fi
+
+  # Then provenance. The model groups; it does not get to invent what it is
+  # grouping. Every finding is looked up by **id** in the corpus index, and the
+  # pull request each one counts towards is taken from the index rather than
+  # from the model's own `pr` field. A duplicated or misattributed finding can
+  # no longer manufacture a threshold.
+  local unknown
+  unknown="$(jq -s --slurpfile g "$WORK/groups.json" '
+      (map(.id) | map(tostring) | unique) as $known
+      | [ $g[0][] | .findings[].id | tostring ] | unique
+      | map(select(. as $i | ($known | index($i)) | not))
+    ' "$index" 2>/dev/null | jq -r 'join(", ")')"
+  if [ -n "$unknown" ]; then
+    status "FAILED: the grouping cites finding id(s) that are not in the corpus: $unknown"
+    exit 1
+  fi
+
+  if ! jq -s --slurpfile g "$WORK/groups.json" \
+        --argjson minf "$MIN_FINDINGS" --argjson mint "$MIN_TICKETS" '
+    (INDEX(.[]; .id | tostring)) as $idx
+    | [ $g[0][]
+        | (.findings | map(.id | tostring) | unique) as $ids
+        | . + { finding_count: ($ids | length),
+                ticket_count:  ($ids | map($idx[.].pr) | unique | length) }
+        | . + { fires: (.finding_count >= $minf and .ticket_count >= $mint) }
+      ] | sort_by(-.finding_count)
+  ' "$index" >"$WORK/judged.json"
+  then
+    status "FAILED: could not apply the threshold to the grouping"
+    exit 1
+  fi
 
   printf '\n  %-52s %5s %5s  %s\n' "PATTERN" "FIND" "PRS" "VERDICT" | tee -a "$RUN_LOG"
   jq -r --argjson minf "$MIN_FINDINGS" --argjson mint "$MIN_TICKETS" '.[] |
@@ -164,11 +237,13 @@ judge() {
 #    the delivery runner refuses a ticket without them.
 # ---------------------------------------------------------------------------
 propose() {
+  SKIPPED=0
   local n=0
   while read -r idx; do
-    local g name statement scope why body title
+    local g name statement scope why body title ids_csv
     g="$(jq -c ".[$idx]" "$WORK/judged.json")"
     name="$(jq -r '.name' <<<"$g")"
+    ids_csv="$(jq -r '[.findings[].id | tostring] | unique | join(",")' <<<"$g")"
     statement="$(jq -r '.statement' <<<"$g")"
     scope="$(jq -r '.scope' <<<"$g")"
     why="$(jq -r '.why' <<<"$g")"
@@ -195,7 +270,38 @@ propose() {
       printf -- '- Changing any code to comply. The rule describes what is already expected; code that breaks it is a separate ticket.\n'
       printf -- '- Importing the rule into the Qodo portal. That is the human'"'"'s step and the import rewrites what it is given.\n\n'
       printf -- '---\n\n*Proposed automatically by `factory/mine-rules.sh` (run `%s`) from this repository'"'"'s own review history. Nothing was written to `AGENTS.md`. To accept, add `ready-for-agent` and the delivery runner will draft it.*\n' "$RUN_ID"
+      # The identity of a proposal is the set of findings behind it. This
+      # marker is what a later run matches on, so it has to be in the body.
+      printf '\n<!-- factory:pattern ids=%s -->\n' "$ids_csv"
     } >"$body"
+
+    # One proposal per pattern, ever — and a pattern is its findings, not its
+    # name.
+    #
+    # Matching on the title looked fine and was not: the grouping is a model's
+    # answer and the model renames things between runs. The same three findings
+    # came back as "User-text length bound measured differently per layer" and
+    # then as "A text limit measured differently at each layer", and the second
+    # one opened a duplicate ticket for a decision already under way. The
+    # findings do not get renamed, so they are the key: an existing proposal
+    # that shares half of this group's findings is this group.
+    local existing
+    existing="$(gh issue list --repo "$REPO_SLUG" --state all --label "$LABEL_PROPOSAL" \
+                  --limit 200 --json number,body \
+                | jq -r --argjson mine "$(jq -c '[.findings[].id | tostring] | unique' <<<"$g")" '
+                    [ .[]
+                      | . as $i
+                      | ((.body // "") | capture("<!-- factory:pattern ids=(?<ids>[0-9,]+) -->") // empty)
+                      | (.ids | split(",")) as $theirs
+                      | ($mine - ($mine - $theirs) | length) as $shared
+                      | select($shared * 2 >= ([$mine | length, $theirs | length] | min))
+                      | $i.number ]
+                    | first // empty' 2>/dev/null)"
+    if [ -n "$existing" ]; then
+      log "skipped \"$name\" — the same findings are already proposed in #$existing"
+      SKIPPED=$((SKIPPED + 1))
+      continue
+    fi
 
     if [ "$DRY_RUN" = "1" ]; then
       log "dry-run: would open \"$title\" (body at ${body})"
@@ -203,7 +309,13 @@ propose() {
       local url
       url="$(gh issue create --repo "$REPO_SLUG" --title "$title" \
              --label "$LABEL_PROPOSAL" --body-file "$body" 2>>"$RUN_LOG")"
-      log "opened $url"
+      # `gh issue create` failing and the run reporting a proposal anyway is
+      # the shape this factory has been bitten by twice: a step that returns
+      # green or silent rather than red. A URL back, or it did not happen.
+      case "${url:-}" in
+        https://github.com/*/issues/[0-9]*) log "opened $url" ;;
+        *) status "FAILED: opening the proposal for \"$name\" did not return an issue URL"; exit 1 ;;
+      esac
     fi
     n=$((n + 1))
   done < <(jq -r 'to_entries[] | select(.value.fires and ((.value.covered_by // "") == "")) | .key' "$WORK/judged.json")
@@ -227,7 +339,7 @@ main() {
   fi
   judge
   propose
-  status "PROPOSED: $PROPOSED pattern(s) cleared ${MIN_FINDINGS}/${MIN_TICKETS} and were not already covered"
+  status "PROPOSED: $PROPOSED new, $SKIPPED already proposed · threshold ${MIN_FINDINGS} findings across ${MIN_TICKETS}+ PRs"
 }
 
 main "$@"
